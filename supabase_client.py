@@ -37,13 +37,15 @@ def get_supabase():
 def load_outlet_data() -> pd.DataFrame:
     """
     Load all rows from outlet_data table.
-    Uses direct PostgreSQL if SUPABASE_DB_URL is set (much faster for 900k rows).
-    Falls back to paginated REST API.
-    Returns an empty DataFrame on failure.
+    Tries direct PostgreSQL first (fast), falls back to paginated REST API.
+    Returns an empty DataFrame only if both methods fail.
     """
-    try:
-        if SUPABASE_DB_URL:
+    if SUPABASE_DB_URL:
+        try:
             return _load_via_sqlalchemy("outlet_data")
+        except Exception:
+            pass  # fall through to REST
+    try:
         return _load_via_rest("outlet_data")
     except Exception as e:
         st.error(f"Failed to load sales data: {e}")
@@ -52,10 +54,16 @@ def load_outlet_data() -> pd.DataFrame:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_targets() -> pd.DataFrame:
-    """Load all rows from targets table."""
-    try:
-        if SUPABASE_DB_URL:
+    """
+    Load all rows from targets table.
+    Tries direct PostgreSQL first (fast), falls back to paginated REST API.
+    """
+    if SUPABASE_DB_URL:
+        try:
             return _load_via_sqlalchemy("targets")
+        except Exception:
+            pass  # fall through to REST
+    try:
         return _load_via_rest("targets")
     except Exception as e:
         st.error(f"Failed to load targets: {e}")
@@ -63,7 +71,10 @@ def load_targets() -> pd.DataFrame:
 
 
 def _load_via_sqlalchemy(table: str) -> pd.DataFrame:
-    """Fast direct PostgreSQL fetch using SQLAlchemy. Disposes engine after use."""
+    """
+    Fast direct PostgreSQL fetch using SQLAlchemy.
+    Raises on failure so callers can fall back to the REST API.
+    """
     from sqlalchemy import create_engine, text
     engine = create_engine(SUPABASE_DB_URL)
     try:
