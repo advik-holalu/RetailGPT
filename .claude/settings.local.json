@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -c \"import tabulate; print\\(''ok''\\)\")",
+      "Bash(pip3 install:*)",
+      "Bash(python3 -c \"import tabulate, supabase, anthropic, rapidfuzz, markdown; print\\(''All packages OK''\\)\")",
+      "Bash(python3 -m py_compile fuzzy_matcher.py metrics.py supabase_client.py prompts.py query_engine.py app.py pages/upload.py)"
+    ]
+  }
+}
