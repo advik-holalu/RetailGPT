@@ -586,9 +586,39 @@ if not st.session_state.messages:
         unsafe_allow_html=True,
     )
 
-    # Starter question buttons
+    # Dynamic starter questions based on logged-in role
+    _role = st.session_state.get("user_role")
+    if _role == "RSM":
+        _starter_qs = [
+            "What is the MTD secondary for my entire region?",
+            "Show me top 5 SOs by secondary this month",
+            "Which ASM has the highest UPC achievement?",
+            "Give me target vs achievement for all ASMs",
+            "Who are the bottom 3 SOs in my region?",
+            "Category-wise sales contribution for my region",
+            "MTD vs LMTD comparison for my team",
+            "Top 10 outlets by secondary MTD",
+            "What is the ABV trend over the last 3 months?",
+            "Beat-wise secondary breakdown for my region",
+        ]
+    elif _role == "ASM":
+        _starter_qs = [
+            "What is the MTD secondary for my team?",
+            "Show me top 5 SOs under me by secondary",
+            "Give me target vs achievement for all my SOs",
+            "Which of my SOs has the highest UPC this month?",
+            "Who are the bottom 3 SOs under me?",
+            "Category-wise sales for my team this month",
+            "MTD vs LMTD comparison for my SOs",
+            "Top 10 outlets under my ASM",
+            "What is the ABV trend for my team?",
+            "Beat-wise secondary breakdown for my territory",
+        ]
+    else:
+        _starter_qs = STARTER_QUESTIONS
+
     cols = st.columns(2)
-    for i, q in enumerate(STARTER_QUESTIONS):
+    for i, q in enumerate(_starter_qs):
         with cols[i % 2]:
             if st.button(q, key=f"starter_{i}", use_container_width=True):
                 st.session_state.starter_clicked = q

@@ -135,23 +135,30 @@ def filter_lmtd(df: pd.DataFrame) -> pd.DataFrame:
     return df[mask].copy()
 
 
+def filter_nm(df: pd.DataFrame, n: int) -> pd.DataFrame:
+    """Filter to last N complete calendar months based on latest date."""
+    latest = get_latest_date(df)
+    months = []
+    for i in range(1, n + 1):
+        m, y = latest.month - i, latest.year
+        while m <= 0:
+            m += 12; y -= 1
+        months.append((m, y))
+    mask = pd.Series(False, index=df.index)
+    dates = pd.to_datetime(df["date"])
+    for m, y in months:
+        mask |= (dates.dt.month == m) & (dates.dt.year == y)
+    return df[mask].copy()
+
+
 def filter_3m(df: pd.DataFrame) -> pd.DataFrame:
     """Filter to last 3 complete calendar months based on latest date."""
-    latest = get_latest_date(df)
-    # Determine the 3 complete months before the current month
-    months = []
-    for i in range(1, 4):
-        m = latest.month - i
-        y = latest.year
-        while m <= 0:
-            m += 12
-            y -= 1
-        months.append((m, y))
+    return filter_nm(df, 3)
 
-    mask = pd.Series(False, index=df.index)
-    for m, y in months:
-        mask |= (pd.to_datetime(df["date"]).dt.month == m) & (pd.to_datetime(df["date"]).dt.year == y)
-    return df[mask].copy()
+
+def filter_6m(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter to last 6 complete calendar months based on latest date."""
+    return filter_nm(df, 6)
 
 
 def filter_ytd(df: pd.DataFrame) -> pd.DataFrame:
@@ -196,6 +203,8 @@ def apply_time_filter(df: pd.DataFrame, time_range: str, specific_month: int = N
         return filter_lmtd(df)
     if tr == "3m":
         return filter_3m(df)
+    if tr == "6m":
+        return filter_6m(df)
     if tr == "ytd":
         return filter_ytd(df)
     if tr == "today":

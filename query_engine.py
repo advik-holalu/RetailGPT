@@ -247,9 +247,10 @@ class QueryEngine:
             end   = latest.replace(year=prev_y, month=prev_m, day=end_day)
             return start.strftime(fmt), end.strftime(fmt)
 
-        if tr == "3m":
+        if tr in ("3m", "6m"):
+            n_months = 6 if tr == "6m" else 3
             months = []
-            for i in range(1, 4):
+            for i in range(1, n_months + 1):
                 m, y = latest.month - i, latest.year
                 while m <= 0:
                     m += 12; y -= 1
@@ -326,6 +327,20 @@ class QueryEngine:
     # Step 6: Compute metrics and format response
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _wants_targets(question: str, resolved: dict) -> bool:
+        """Return True only if the user explicitly asked for target/achievement data."""
+        keywords = ("target", "tgt", "achievement", "ach%", "achiev", "vs target",
+                    "against target", "attainment")
+        q_lower = question.lower()
+        if any(kw in q_lower for kw in keywords):
+            return True
+        if resolved.get("query_type") == "target_achievement":
+            return True
+        if "target" in [m.lower() for m in resolved.get("metrics", [])]:
+            return True
+        return False
+
     def _compute_and_format(
         self, question: str, resolved: dict, chat_history: list[dict],
         category_filter: list[str] | None = None,
@@ -349,11 +364,12 @@ class QueryEngine:
 
         time_label = self._build_time_label(time_range, latest, resolved)
 
-        cats = category_filter or []
+        cats         = category_filter or []
+        want_targets = self._wants_targets(question, resolved)
 
         if query_type in ("top_n", "bottom_n", "breakdown"):
             data_summary = self._compute_grouped(
-                resolved, time_range, query_type, tgt_month, tgt_year, time_label, cats
+                resolved, time_range, query_type, tgt_month, tgt_year, time_label, cats, want_targets
             )
         elif query_type == "comparison_mtd_lmtd":
             data_summary = self._compute_comparison(resolved, time_label, cats)
@@ -371,7 +387,7 @@ class QueryEngine:
             )
         else:
             data_summary = self._compute_summary(
-                resolved, time_range, tgt_month, tgt_year, time_label, cats
+                resolved, time_range, tgt_month, tgt_year, time_label, cats, want_targets
             )
 
         return self._format_response(question, data_summary, chat_history)
@@ -380,7 +396,7 @@ class QueryEngine:
     # Computation helpers
     # ------------------------------------------------------------------
 
-    def _compute_summary(self, resolved, time_range, tgt_month, tgt_year, time_label, cats=None) -> str:
+    def _compute_summary(self, resolved, time_range, tgt_month, tgt_year, time_label, cats=None, want_targets=False) -> str:
         date_start, date_end = self._compute_date_range(time_range, resolved)
         df  = self._fetch_outlet(resolved, date_start, date_end, cats)
         df  = apply_time_filter(df, time_range,
@@ -388,12 +404,13 @@ class QueryEngine:
         m   = calc_metrics(df)
 
         tgt_row = None
-        tdf = self._fetch_targets(resolved, tgt_month, tgt_year)
-        if not tdf.empty:
-            tgt_row = {
-                "secondary_tgt": tdf["secondary_tgt"].sum(),
-                "upc_target":    tdf["upc_target"].sum(),
-            }
+        if want_targets:
+            tdf = self._fetch_targets(resolved, tgt_month, tgt_year)
+            if not tdf.empty:
+                tgt_row = {
+                    "secondary_tgt": tdf["secondary_tgt"].sum(),
+                    "upc_target":    tdf["upc_target"].sum(),
+                }
 
         display = summarize_single(m, tgt_row)
         lines   = [f"Time period: {time_label}"]
@@ -402,7 +419,7 @@ class QueryEngine:
         return "\n".join(lines)
 
     def _compute_grouped(
-        self, resolved, time_range, query_type, tgt_month, tgt_year, time_label, cats=None
+        self, resolved, time_range, query_type, tgt_month, tgt_year, time_label, cats=None, want_targets=False
     ) -> str:
         date_start, date_end = self._compute_date_range(time_range, resolved)
         df  = self._fetch_outlet(resolved, date_start, date_end, cats)
@@ -428,9 +445,7 @@ class QueryEngine:
             return f"Time period: {time_label}\nNo data available for grouping by {group_by}."
 
         grp             = calc_metrics_grouped(df, group_col)
-        include_targets = (
-            "target" in resolved.get("metrics", []) or query_type == "target_achievement"
-        )
+        include_targets = want_targets or query_type == "target_achievement"
 
         if include_targets:
             tdf = self._fetch_targets(resolved, tgt_month, tgt_year)
@@ -591,14 +606,15 @@ class QueryEngine:
             prev_m = latest.month - 1 if latest.month > 1 else 12
             prev_y = year if latest.month > 1 else year - 1
             return f"LMTD {MONTH_NAMES.get(prev_m, '')} {prev_y}"
-        if tr == "3m":
+        if tr in ("3m", "6m"):
+            n_months = 6 if tr == "6m" else 3
             prev_months = []
-            for i in range(1, 4):
+            for i in range(1, n_months + 1):
                 m, y = latest.month - i, year
                 while m <= 0:
                     m += 12; y -= 1
                 prev_months.append(MONTH_NAMES.get(m, "")[:3])
-            return f"Last 3 months ({', '.join(reversed(prev_months))})"
+            return f"Last {n_months} months ({', '.join(reversed(prev_months))})"
         if tr == "ytd":
             fy_y = year if latest.month >= 4 else year - 1
             return f"YTD FY{str(fy_y)[2:]+str(fy_y+1)[2:]} (Apr {fy_y} – {latest.strftime('%d %b %Y')})"
