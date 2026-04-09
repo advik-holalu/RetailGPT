@@ -239,13 +239,18 @@ if outlet_file and st.button("📤 Upload Outlet Data", key="upload_outlet_btn",
                 progress_callback=update_progress,
             )
 
-        if err:
+        progress_bar.progress(1.0, text="Done!")
+        if err and err.startswith("Upload complete."):
+            # Partial success — some batches skipped after retries
+            st.warning(f"⚠️ {err}")
+            clear_data_cache()
+            st.info("✨ App data cache cleared. The chat page will reload fresh data on next query.")
+        elif err:
             st.markdown(
-                f'<div class="error-box">❌ Upload stopped at {rows_done:,} rows. Error: {err}</div>',
+                f'<div class="error-box">❌ Upload failed at {rows_done:,} rows. Error: {err}</div>',
                 unsafe_allow_html=True,
             )
         else:
-            progress_bar.progress(1.0, text="Done!")
             st.markdown(
                 f'<div class="success-box">✅ Successfully uploaded <b>{rows_done:,}</b> rows to outlet_data '
                 f'({outlet_mode_key.upper()} mode).</div>',
@@ -320,17 +325,20 @@ if target_file and st.button("📤 Upload Target Data", key="upload_target_btn",
                 df_t,
                 table="targets",
                 mode=target_mode_key,
-                batch_size=500,
+                batch_size=100,
                 progress_callback=update_target_progress,
             )
 
-        if err_t:
+        progress_bar_t.progress(1.0, text="Done!")
+        if err_t and err_t.startswith("Upload complete."):
+            st.warning(f"⚠️ {err_t}")
+            clear_data_cache()
+        elif err_t:
             st.markdown(
-                f'<div class="error-box">❌ Upload stopped at {rows_done_t:,} rows. Error: {err_t}</div>',
+                f'<div class="error-box">❌ Upload failed at {rows_done_t:,} rows. Error: {err_t}</div>',
                 unsafe_allow_html=True,
             )
         else:
-            progress_bar_t.progress(1.0, text="Done!")
             st.markdown(
                 f'<div class="success-box">✅ Successfully uploaded <b>{rows_done_t:,}</b> target rows '
                 f'({target_mode_key.upper()} mode).</div>',

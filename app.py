@@ -330,6 +330,14 @@ header { display: none !important; }
 .ob-dot { display:inline-block; animation: ob-pulse 1.4s ease-in-out infinite; }
 .ob-dot:nth-child(2) { animation-delay:.2s; }
 .ob-dot:nth-child(3) { animation-delay:.4s; }
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+section[data-testid="stSidebar"] {
+    display: block !important;
+}
 </style>
 """, unsafe_allow_html=True)
 

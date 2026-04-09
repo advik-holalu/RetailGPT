@@ -534,14 +534,19 @@ def upload_dataframe(
     df: pd.DataFrame,
     table: str,
     mode: str = "append",
-    batch_size: int = 500,
+    batch_size: int = 100,
     progress_callback=None,
 ) -> tuple[int, str]:
     """
     Upload a DataFrame to a Supabase table.
     mode: 'replace' (delete all rows first) or 'append'.
     Returns (rows_uploaded, error_message_or_None).
+    Batches of 100 rows; retries each batch up to 3 times on failure;
+    skips batches that fail all retries and continues to the end.
     """
+    import time as _time
+    import numpy as np
+
     client = get_supabase()
 
     if mode == "replace":
@@ -557,22 +562,36 @@ def upload_dataframe(
     df.columns = [re.sub(r'\.\d+$', '', str(col)).strip() for col in df.columns]
     df = df.loc[:, ~df.columns.duplicated(keep='first')]
 
-    import numpy as np
     df = df.replace({np.nan: None, float('inf'): None, float('-inf'): None})
     records = df.where(pd.notnull(df), None).to_dict(orient='records')
     total    = len(records)
     uploaded = 0
+    skipped  = 0
+    n_batches = math.ceil(total / batch_size)
 
-    for i in range(math.ceil(total / batch_size)):
+    for i in range(n_batches):
         batch = records[i * batch_size: (i + 1) * batch_size]
-        try:
-            client.table(table).insert(batch).execute()
-            uploaded += len(batch)
-        except Exception as e:
-            return uploaded, str(e)
-        if progress_callback:
-            progress_callback(uploaded / total)
+        last_err = None
+        for attempt in range(3):
+            try:
+                client.table(table).insert(batch).execute()
+                uploaded += len(batch)
+                last_err = None
+                break
+            except Exception as e:
+                last_err = e
+                if attempt < 2:
+                    _time.sleep(2)
+        if last_err is not None:
+            skipped += len(batch)
 
+        if progress_callback:
+            progress_callback((i + 1) / n_batches)
+
+        _time.sleep(0.1)
+
+    if skipped:
+        return uploaded, f"Upload complete. {uploaded:,} rows uploaded, {skipped:,} rows skipped after retries."
     return uploaded, None
 
 
