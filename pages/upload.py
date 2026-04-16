@@ -120,6 +120,7 @@ from supabase_client import (
     parse_outlet_excel,
     parse_target_excel,
     upload_dataframe,
+    delete_rows,
     get_table_row_count,
     clear_data_cache,
 )
@@ -225,19 +226,36 @@ if outlet_file and st.button("📤 Upload Outlet Data", key="upload_outlet_btn",
             st.error(f"Missing required columns: {missing}. Please check the Excel file format.")
             st.stop()
 
+        # ── REPLACE: delete existing rows first ────────────────────────────
+        if outlet_mode_key == "replace":
+            del_status = st.empty()
+            del_status.info(f"🗑️ Deleting existing rows for **{fy}**…")
+            del_count, del_err = delete_rows("outlet_data", {"fy": fy})
+            if del_err:
+                del_status.error(f"❌ Delete failed: {del_err}. Upload aborted — no rows were changed.")
+                st.stop()
+            del_status.success(f"✅ Deleted **{del_count:,}** existing rows for {fy}. Now uploading fresh data…")
+
+        # ── INSERT ──────────────────────────────────────────────────────────
         progress_bar.progress(0.1, text="Uploading to Supabase…")
+        row_counter = st.empty()
 
-        def update_progress(p):
-            progress_bar.progress(0.1 + p * 0.9, text=f"Uploading… {int(p * 100)}%")
-
-        with st.spinner("Uploading…"):
-            rows_done, err = upload_dataframe(
-                df,
-                table="outlet_data",
-                mode=outlet_mode_key,
-                batch_size=500,
-                progress_callback=update_progress,
+        def update_progress(uploaded, total):
+            frac = uploaded / total if total else 0
+            progress_bar.progress(
+                0.1 + frac * 0.9,
+                text=f"Uploading… {uploaded:,} of {total:,} rows ({int(frac * 100)}%)",
             )
+            row_counter.markdown(f"⬆️ **{uploaded:,}** of **{total:,}** rows uploaded…")
+
+        rows_done, err = upload_dataframe(
+            df,
+            table="outlet_data",
+            mode="append",
+            batch_size=100,
+            progress_callback=update_progress,
+        )
+        row_counter.empty()
 
         progress_bar.progress(1.0, text="Done!")
         if err and err.startswith("Upload complete."):
@@ -315,19 +333,42 @@ if target_file and st.button("📤 Upload Target Data", key="upload_target_btn",
             st.error(f"Missing required columns: {missing_t}. Please check the file format.")
             st.stop()
 
+        # ── REPLACE: delete existing targets for this month/year ───────────
+        if target_mode_key == "replace":
+            del_status_t = st.empty()
+            if "month" in df_t.columns and "year" in df_t.columns:
+                t_month = int(df_t["month"].iloc[0])
+                t_year  = int(df_t["year"].iloc[0])
+                del_status_t.info(f"🗑️ Deleting existing targets for **{t_month}/{t_year}**…")
+                del_count_t, del_err_t = delete_rows("targets", {"month": t_month, "year": t_year})
+            else:
+                del_status_t.info("🗑️ Deleting all existing targets…")
+                del_count_t, del_err_t = delete_rows("targets")
+            if del_err_t:
+                del_status_t.error(f"❌ Delete failed: {del_err_t}. Upload aborted — no rows were changed.")
+                st.stop()
+            del_status_t.success(f"✅ Deleted **{del_count_t:,}** existing target rows. Now uploading fresh data…")
+
+        # ── INSERT ──────────────────────────────────────────────────────────
         progress_bar_t.progress(0.1, text="Uploading…")
+        row_counter_t = st.empty()
 
-        def update_target_progress(p):
-            progress_bar_t.progress(0.1 + p * 0.9, text=f"Uploading… {int(p * 100)}%")
-
-        with st.spinner("Uploading…"):
-            rows_done_t, err_t = upload_dataframe(
-                df_t,
-                table="targets",
-                mode=target_mode_key,
-                batch_size=100,
-                progress_callback=update_target_progress,
+        def update_target_progress(uploaded, total):
+            frac = uploaded / total if total else 0
+            progress_bar_t.progress(
+                0.1 + frac * 0.9,
+                text=f"Uploading… {uploaded:,} of {total:,} rows ({int(frac * 100)}%)",
             )
+            row_counter_t.markdown(f"⬆️ **{uploaded:,}** of **{total:,}** rows uploaded…")
+
+        rows_done_t, err_t = upload_dataframe(
+            df_t,
+            table="targets",
+            mode="append",
+            batch_size=100,
+            progress_callback=update_target_progress,
+        )
+        row_counter_t.empty()
 
         progress_bar_t.progress(1.0, text="Done!")
         if err_t and err_t.startswith("Upload complete."):

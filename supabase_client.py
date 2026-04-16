@@ -530,6 +530,48 @@ def parse_target_excel(file) -> pd.DataFrame:
 # Upload helpers
 # ---------------------------------------------------------------------------
 
+def delete_rows(table: str, filters: dict = None) -> tuple[int, str]:
+    """
+    Delete rows from a Supabase table before a REPLACE-mode upload.
+    filters: dict of {col: val} for targeted delete (all conditions ANDed).
+             If None, deletes all rows in ID batches of 1000.
+    Returns (rows_deleted, error_or_None).
+    Raises nothing — errors are returned as the second tuple element.
+    """
+    import time as _time
+    client = get_supabase()
+    try:
+        if filters:
+            # Count rows that will be deleted (for reporting)
+            q_count = client.table(table).select("id", count="exact")
+            for col, val in filters.items():
+                q_count = q_count.eq(col, val)
+            count_res = q_count.execute()
+            count_before = count_res.count or 0
+
+            # Targeted delete
+            q_del = client.table(table).delete()
+            for col, val in filters.items():
+                q_del = q_del.eq(col, val)
+            q_del.execute()
+
+            return count_before, None
+        else:
+            # ID-batch delete (safe for large tables with no filter column)
+            total_deleted = 0
+            while True:
+                res = client.table(table).select("id").limit(1000).execute()
+                ids = [r["id"] for r in (res.data or [])]
+                if not ids:
+                    break
+                client.table(table).delete().in_("id", ids).execute()
+                total_deleted += len(ids)
+                _time.sleep(0.1)
+            return total_deleted, None
+    except Exception as e:
+        return 0, str(e)
+
+
 def upload_dataframe(
     df: pd.DataFrame,
     table: str,
@@ -538,25 +580,16 @@ def upload_dataframe(
     progress_callback=None,
 ) -> tuple[int, str]:
     """
-    Upload a DataFrame to a Supabase table.
-    mode: 'replace' (delete all rows first) or 'append'.
+    Upload a DataFrame to a Supabase table (insert only — delete is handled separately).
+    mode parameter is accepted for backward compatibility but delete must be done beforehand.
+    progress_callback: called as callback(uploaded_so_far, total_rows) after each batch.
     Returns (rows_uploaded, error_message_or_None).
-    Batches of 100 rows; retries each batch up to 3 times on failure;
-    skips batches that fail all retries and continues to the end.
+    Retries each batch up to 3 times on failure; skips batches that exhaust retries.
     """
     import time as _time
     import numpy as np
 
     client = get_supabase()
-
-    if mode == "replace":
-        try:
-            client.table(table).delete().neq("id", -1).execute()
-        except Exception:
-            try:
-                client.table(table).delete().gte("id", 0).execute()
-            except Exception:
-                pass
 
     # Final safety dedup
     df.columns = [re.sub(r'\.\d+$', '', str(col)).strip() for col in df.columns]
@@ -564,10 +597,10 @@ def upload_dataframe(
 
     df = df.replace({np.nan: None, float('inf'): None, float('-inf'): None})
     records = df.where(pd.notnull(df), None).to_dict(orient='records')
-    total    = len(records)
-    uploaded = 0
-    skipped  = 0
-    n_batches = math.ceil(total / batch_size)
+    total     = len(records)
+    uploaded  = 0
+    skipped   = 0
+    n_batches = math.ceil(total / batch_size) if total else 0
 
     for i in range(n_batches):
         batch = records[i * batch_size: (i + 1) * batch_size]
@@ -586,7 +619,7 @@ def upload_dataframe(
             skipped += len(batch)
 
         if progress_callback:
-            progress_callback((i + 1) / n_batches)
+            progress_callback(uploaded, total)
 
         _time.sleep(0.1)
 

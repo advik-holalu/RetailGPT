@@ -373,6 +373,16 @@ class QueryEngine:
             )
         elif query_type == "comparison_mtd_lmtd":
             data_summary = self._compute_comparison(resolved, time_label, cats)
+        elif query_type == "comparison_cm_lm_full":
+            data_summary = self._compute_cm_lm_full(resolved, time_label, cats)
+        elif query_type == "l3m_average":
+            data_summary = self._compute_l3m_average(resolved, time_label, cats)
+        elif query_type == "top_outlet_cm_l3m":
+            data_summary = self._compute_top_outlet_cm_l3m(
+                resolved, resolved.get("n", 10), time_label, cats
+            )
+        elif query_type == "unbilled_outlets":
+            data_summary = self._compute_unbilled(resolved, time_label, cats)
         elif query_type == "beat_wise":
             data_summary = self._compute_beat_wise(resolved, time_range, time_label, cats)
         elif query_type == "category_wise":
@@ -568,6 +578,260 @@ class QueryEngine:
         return (
             f"Time period: {time_label}\nTarget vs Achievement\n\n"
             f"{display_df.to_markdown(index=False)}"
+        )
+
+    def _compute_cm_lm_full(self, resolved, time_label, cats=None) -> str:
+        """CM MTD vs LMTD (same days) vs LM full month — 3-way comparison."""
+        latest = self._latest_date
+        if latest.month == 1:
+            prev_y, prev_m = latest.year - 1, 12
+        else:
+            prev_y, prev_m = latest.year, latest.month - 1
+        last_day_prev = calendar.monthrange(prev_y, prev_m)[1]
+
+        date_start = f"{prev_y}-{prev_m:02d}-01"
+        date_end   = latest.strftime("%Y-%m-%d")
+        df = self._fetch_outlet(resolved, date_start, date_end, cats)
+
+        if df.empty:
+            return "No data available for this comparison."
+
+        dates = pd.to_datetime(df["date"])
+
+        cm_start      = latest.replace(day=1)
+        lm_start      = pd.Timestamp(year=prev_y, month=prev_m, day=1)
+        lm_end_day    = min(latest.day, last_day_prev)
+        lm_end        = pd.Timestamp(year=prev_y, month=prev_m, day=lm_end_day)
+        lm_full_end   = pd.Timestamp(year=prev_y, month=prev_m, day=last_day_prev)
+
+        cm_df      = df[(dates >= cm_start) & (dates <= latest)]
+        lmtd_df    = df[(dates >= lm_start) & (dates <= lm_end)]
+        lm_full_df = df[(dates >= lm_start) & (dates <= lm_full_end)]
+
+        cm_m      = calc_metrics(cm_df)
+        lmtd_m    = calc_metrics(lmtd_df)
+        lmfull_m  = calc_metrics(lm_full_df)
+
+        cur_mn  = MONTH_NAMES.get(latest.month, "")[:3]
+        prev_mn = MONTH_NAMES.get(prev_m, "")[:3]
+        col_cm     = f"CM MTD ({cur_mn} 1–{latest.day})"
+        col_lmtd   = f"LMTD ({prev_mn} 1–{lm_end_day})"
+        col_lmfull = f"LM Full ({prev_mn})"
+
+        def delta(a, b):
+            if b == 0: return "—"
+            pct = (a - b) / b * 100
+            return f"{'+'if pct>=0 else ''}{pct:.1f}%"
+
+        rows = []
+        for label, key, is_cur in [
+            ("Secondary", "secondary", True),
+            ("PC",        "pc",        False),
+            ("UPC",       "upc",       False),
+            ("TC",        "tc",        False),
+            ("ABV",       "abv",       True),
+        ]:
+            fmt = format_currency if is_cur else lambda x: f"{int(x):,}"
+            rows.append({
+                "Metric":       label,
+                col_cm:         fmt(cm_m[key]),
+                col_lmtd:       fmt(lmtd_m[key]),
+                "vs LMTD":      delta(cm_m[key], lmtd_m[key]),
+                col_lmfull:     fmt(lmfull_m[key]),
+                "vs LM Full":   delta(cm_m[key], lmfull_m[key]),
+            })
+
+        table = pd.DataFrame(rows).to_markdown(index=False)
+        return f"CM MTD vs LMTD vs Last Month Full — Comparison\n\n{table}"
+
+    def _compute_l3m_average(self, resolved, time_label, cats=None) -> str:
+        """Last 3 complete months breakdown with average row at bottom."""
+        latest = self._latest_date
+
+        months = []
+        for i in range(1, 4):
+            m, y = latest.month - i, latest.year
+            while m <= 0:
+                m += 12; y -= 1
+            months.append((m, y))
+
+        min_m, min_y = min(months, key=lambda x: (x[1], x[0]))
+        max_m, max_y = max(months, key=lambda x: (x[1], x[0]))
+        last_day_max = calendar.monthrange(max_y, max_m)[1]
+        date_start   = f"{min_y}-{min_m:02d}-01"
+        date_end     = f"{max_y}-{max_m:02d}-{last_day_max:02d}"
+        df = self._fetch_outlet(resolved, date_start, date_end, cats)
+
+        rows    = []
+        raw_sec = []
+        raw_pc  = []
+        raw_upc = []
+        raw_tc  = []
+
+        for m, y in sorted(months, key=lambda x: (x[1], x[0])):
+            ld        = calendar.monthrange(y, m)[1]
+            m_start   = pd.Timestamp(year=y, month=m, day=1)
+            m_end     = pd.Timestamp(year=y, month=m, day=ld)
+            dates     = pd.to_datetime(df["date"])
+            m_df      = df[(dates >= m_start) & (dates <= m_end)]
+            met       = calc_metrics(m_df)
+            raw_sec.append(met["secondary"])
+            raw_pc.append(met["pc"])
+            raw_upc.append(met["upc"])
+            raw_tc.append(met["tc"])
+            rows.append({
+                "Month":     f"{MONTH_NAMES.get(m,'')} {y}",
+                "Secondary": format_currency(met["secondary"]),
+                "TC":        f"{met['tc']:,}",
+                "PC":        f"{met['pc']:,}",
+                "UPC":       f"{met['upc']:,}",
+                "ABV":       format_currency(met["abv"]),
+            })
+
+        avg_sec = sum(raw_sec) / 3
+        avg_pc  = sum(raw_pc)  / 3
+        avg_upc = sum(raw_upc) / 3
+        avg_tc  = sum(raw_tc)  / 3
+        avg_abv = avg_sec / avg_pc if avg_pc > 0 else 0.0
+        rows.append({
+            "Month":     "**3M Average**",
+            "Secondary": format_currency(avg_sec),
+            "TC":        f"{avg_tc:,.0f}",
+            "PC":        f"{avg_pc:,.0f}",
+            "UPC":       f"{avg_upc:,.0f}",
+            "ABV":       format_currency(avg_abv),
+        })
+
+        table = pd.DataFrame(rows).to_markdown(index=False)
+        return f"Last 3 Complete Months — Monthly Breakdown + Average\n\n{table}"
+
+    def _compute_top_outlet_cm_l3m(self, resolved, n, time_label, cats=None) -> str:
+        """Top N outlets by CM secondary vs their L3M monthly average."""
+        latest = self._latest_date
+        n = int(n or 10)
+
+        months = []
+        for i in range(1, 4):
+            m, y = latest.month - i, latest.year
+            while m <= 0:
+                m += 12; y -= 1
+            months.append((m, y))
+
+        min_m, min_y = min(months, key=lambda x: (x[1], x[0]))
+        date_start   = f"{min_y}-{min_m:02d}-01"
+        date_end     = latest.strftime("%Y-%m-%d")
+        df = self._fetch_outlet(resolved, date_start, date_end, cats)
+
+        if df.empty:
+            return "No data available."
+
+        dates    = pd.to_datetime(df["date"])
+        cm_start = latest.replace(day=1)
+        cm_df    = df[(dates >= cm_start) & (dates <= latest)]
+
+        if cm_df.empty:
+            return "No current month data available."
+
+        # Top N by CM secondary
+        cm_grp = (
+            cm_df.groupby("shop_erpid")
+            .agg(outlet_name=("outlet", "first"), cm_sec=("net_value_order", "sum"))
+            .reset_index()
+            .sort_values("cm_sec", ascending=False)
+            .head(n)
+        )
+        top_ids = set(cm_grp["shop_erpid"].tolist())
+
+        # L3M monthly totals for those outlets
+        l3m_secs: dict[str, float] = {eid: 0.0 for eid in top_ids}
+        l3m_df = df[df["shop_erpid"].isin(top_ids)]
+        for m, y in months:
+            ld     = calendar.monthrange(y, m)[1]
+            m_s    = pd.Timestamp(year=y, month=m, day=1)
+            m_e    = pd.Timestamp(year=y, month=m, day=ld)
+            m_date = pd.to_datetime(l3m_df["date"])
+            m_slice = l3m_df[(m_date >= m_s) & (m_date <= m_e)]
+            for eid, val in m_slice.groupby("shop_erpid")["net_value_order"].sum().items():
+                if eid in l3m_secs:
+                    l3m_secs[eid] += val
+
+        rows = []
+        for _, row in cm_grp.iterrows():
+            eid     = row["shop_erpid"]
+            avg_l3m = l3m_secs.get(eid, 0.0) / 3
+            rows.append({
+                "Outlet":         row["outlet_name"],
+                "CM Secondary":   format_currency(row["cm_sec"]),
+                "L3M Mthly Avg":  format_currency(avg_l3m),
+            })
+
+        table = pd.DataFrame(rows).to_markdown(index=False)
+        return f"Top {n} Outlets — Current Month vs L3M Monthly Average\n\n{table}"
+
+    def _compute_unbilled(self, resolved, time_label, cats=None) -> str:
+        """Outlets active in L3M but with zero orders in current month MTD."""
+        latest = self._latest_date
+
+        months = []
+        for i in range(1, 4):
+            m, y = latest.month - i, latest.year
+            while m <= 0:
+                m += 12; y -= 1
+            months.append((m, y))
+
+        min_m, min_y = min(months, key=lambda x: (x[1], x[0]))
+        date_start   = f"{min_y}-{min_m:02d}-01"
+        date_end     = latest.strftime("%Y-%m-%d")
+        df = self._fetch_outlet(resolved, date_start, date_end, cats)
+
+        if df.empty:
+            return "No data available for unbilled outlet analysis."
+
+        dates    = pd.to_datetime(df["date"])
+        cm_start = latest.replace(day=1)
+
+        # CM billed: any positive order this month
+        cm_billed = set(
+            df[(dates >= cm_start) & (df["net_value_order"] > 0)]["shop_erpid"].unique()
+        )
+
+        # L3M active: any positive order in last 3 complete months
+        l3m_df = df[dates < cm_start]
+        l3m_active = set(
+            l3m_df[l3m_df["net_value_order"] > 0]["shop_erpid"].unique()
+        )
+
+        unbilled_ids = l3m_active - cm_billed
+        total = len(unbilled_ids)
+
+        if total == 0:
+            return (
+                f"All outlets active in the last 3 months have been billed this month. 🎉\n"
+                f"Total billed outlets MTD: {len(cm_billed):,}"
+            )
+
+        # Details of unbilled outlets
+        unbilled_df = l3m_df[l3m_df["shop_erpid"].isin(unbilled_ids)].copy()
+        unbilled_df["date"] = pd.to_datetime(unbilled_df["date"])
+
+        # Determine grouping: RSM scope → group by ASM; ASM scope → group by SO
+        group_col = "sales_officer" if resolved.get("asm") else "asm"
+        if group_col not in unbilled_df.columns:
+            group_col = "sales_officer"
+
+        summary = (
+            unbilled_df.groupby(group_col)["shop_erpid"]
+            .nunique()
+            .reset_index(name="Unbilled Outlets")
+            .sort_values("Unbilled Outlets", ascending=False)
+        )
+        summary.columns = [group_col.replace("_", " ").title(), "Unbilled Outlets"]
+
+        table = summary.to_markdown(index=False)
+        return (
+            f"Unbilled Outlets — MTD {MONTH_NAMES.get(latest.month,'')} {latest.year}\n"
+            f"Total: {total:,} outlets active in L3M but NO orders this month\n\n"
+            f"{table}"
         )
 
     # ------------------------------------------------------------------

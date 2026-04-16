@@ -138,7 +138,7 @@ Return ONLY valid JSON with these fields (no markdown, no explanation):
   "time_range": "mtd"|"lmtd"|"3m"|"ytd"|"today"|"yesterday"|"this_week"|"last_week"|"this_month"|"last_month"|"specific_month_year"|"all",
   "specific_month": null or 1-12,
   "specific_year": null or four-digit year,
-  "query_type": "summary"|"breakdown"|"top_n"|"bottom_n"|"target_achievement"|"comparison_mtd_lmtd"|"beat_wise"|"category_wise"|"outlet_wise"|"trend"|"count",
+  "query_type": "summary"|"breakdown"|"top_n"|"bottom_n"|"target_achievement"|"comparison_mtd_lmtd"|"comparison_cm_lm_full"|"l3m_average"|"top_outlet_cm_l3m"|"unbilled_outlets"|"beat_wise"|"category_wise"|"outlet_wise"|"trend"|"count",
   "n": null or integer (for top/bottom N),
   "group_by": "so"|"asm"|"rsm"|"beat"|"outlet"|"category"|"state"|"zone"|"product"|null,
   "context_from_history": true or false
@@ -159,6 +159,10 @@ RULES:
 - If user asks about "Q1"/"Q2" etc. of Indian FY: Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar
 - For Q-period questions, use time_range="specific_month_year" per month (pick the last month of the quarter)
 - If "target" or "achievement" or "vs target" in question → include target_achievement type
+- comparison_cm_lm_full: question asks for 3-way comparison — current month MTD vs last month same days vs last month full month total (keywords: "CM vs LM", "vs LM full", "lm full", "last month full", "full month")
+- l3m_average: question asks for average over last 3 complete months (keywords: "L3M average", "3 month average", "avg monthly", "last 3 months average")
+- top_outlet_cm_l3m: question asks for top outlets with current month vs 3-month average comparison
+- unbilled_outlets: question asks for outlets with no orders / unbilled / not active this month (keywords: "unbilled", "not billed", "no orders", "inactive outlets")
 """
 
 ENTITY_EXTRACTION_USER_TEMPLATE = """Conversation history:
