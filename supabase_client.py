@@ -32,6 +32,12 @@ def get_supabase():
     return _supabase_client
 
 
+def _reset_connection():
+    """Reset the Supabase client so the next call reconnects fresh."""
+    global _supabase_client
+    _supabase_client = None
+
+
 # ---------------------------------------------------------------------------
 # Startup helpers — called once, results cached for 2 hours
 # ---------------------------------------------------------------------------
@@ -186,16 +192,31 @@ def fetch_outlet_data(
 ) -> pd.DataFrame:
     """
     Fetch outlet_data rows that match ALL supplied filters.
-    Pushes every filter to the database — never loads unneeded rows.
-    Tries SQLAlchemy first; falls back to the Supabase REST API.
+    Tries SQLAlchemy first; falls back to Supabase REST.
+    Retries once on failure (FIX 7).
     """
+    import time as _t
     cats = categories or []
-    if SUPABASE_DB_URL:
+
+    def _attempt():
+        if SUPABASE_DB_URL:
+            try:
+                return _fetch_outlet_sql(date_start, date_end, rsm, asm, so, beat, outlet, state, zone, cats)
+            except Exception:
+                pass
+        return _fetch_outlet_rest(date_start, date_end, rsm, asm, so, beat, outlet, state, zone, cats)
+
+    try:
+        return _attempt()
+    except Exception:
+        _reset_connection()
+        _t.sleep(2)
         try:
-            return _fetch_outlet_sql(date_start, date_end, rsm, asm, so, beat, outlet, state, zone, cats)
-        except Exception:
-            pass
-    return _fetch_outlet_rest(date_start, date_end, rsm, asm, so, beat, outlet, state, zone, cats)
+            return _attempt()
+        except Exception as e:
+            raise ConnectionError(
+                "Connection lost. Please click Refresh Data to reconnect."
+            ) from e
 
 
 def _sql_filter(conditions, params, col, val):
@@ -297,13 +318,28 @@ def fetch_targets(
     asm: str = None,
     so: str = None,
 ) -> pd.DataFrame:
-    """Fetch target rows on demand with optional filters."""
-    if SUPABASE_DB_URL:
+    """Fetch target rows on demand with optional filters. Retries once on failure (FIX 7)."""
+    import time as _t
+
+    def _attempt():
+        if SUPABASE_DB_URL:
+            try:
+                return _fetch_targets_sql(month, year, rsm, asm, so)
+            except Exception:
+                pass
+        return _fetch_targets_rest(month, year, rsm, asm, so)
+
+    try:
+        return _attempt()
+    except Exception:
+        _reset_connection()
+        _t.sleep(2)
         try:
-            return _fetch_targets_sql(month, year, rsm, asm, so)
-        except Exception:
-            pass
-    return _fetch_targets_rest(month, year, rsm, asm, so)
+            return _attempt()
+        except Exception as e:
+            raise ConnectionError(
+                "Connection lost. Please click Refresh Data to reconnect."
+            ) from e
 
 
 def _fetch_targets_sql(month, year, rsm, asm, so) -> pd.DataFrame:

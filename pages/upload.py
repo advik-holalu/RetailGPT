@@ -5,48 +5,40 @@ Supports uploading OutletFY25 / OutletFY26 Excel files and Target Excel files.
 Modes: REPLACE (delete all existing rows first) or APPEND (add to existing).
 """
 
+import sys
 import streamlit as st
-import pandas as pd
 import re
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Import render_header from the main app module
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from app import render_header  # noqa: E402
+
 st.set_page_config(
-    page_title="RetailGPT — Data Upload",
-    page_icon="📤",
+    page_title="DESi Field AI — Data Upload",
+    page_icon=None,
     layout="centered",
 )
 
 UPLOAD_PASSWORD = os.environ.get("UPLOAD_PASSWORD", "")
 
 # ---------------------------------------------------------------------------
-# Custom CSS (minimal, consistent with main app)
+# Custom CSS
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: #0f1117;
-    color: #e0e0e0;
-}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+* { font-family: 'Inter', sans-serif; }
 #MainMenu, footer { visibility: hidden; }
-.upload-header {
-    background: linear-gradient(135deg, #1a1f2e 0%, #242938 100%);
-    border-bottom: 1px solid #2d3250;
-    padding: 1rem 2rem 0.75rem;
-    margin-bottom: 1.5rem;
-}
-.upload-header h1 { font-size: 1.6rem; color: #fff; margin: 0; }
-.upload-header p { color: #8892a4; font-size: 0.85rem; margin: 0.2rem 0 0; }
 .info-box {
-    background: #1a1f2e;
-    border: 1px solid #2d3250;
+    border: 1px solid #ccc;
     border-radius: 8px;
     padding: 0.9rem 1.2rem;
     margin: 0.75rem 0;
     font-size: 0.88rem;
-    color: #9fa8da;
 }
 .success-box {
     background: #1b2e1b;
@@ -62,29 +54,20 @@ html, body, [data-testid="stAppViewContainer"] {
     padding: 0.9rem 1.2rem;
     color: #ef9a9a;
 }
-.stTextInput input, .stSelectbox select {
-    background: #1a1f2e !important;
-    border: 1px solid #2d3250 !important;
-    color: #e0e0e0 !important;
+[data-testid="stBaseButton-secondary"], [data-testid="stBaseButton-primary"] {
+    background: #F7941D !important;
+    color: #0E0E0E !important;
+    border: none !important;
     border-radius: 8px !important;
+    font-weight: 600 !important;
 }
-.stButton button {
-    background: #3949ab;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 500;
+[data-testid="stBaseButton-secondary"]:hover, [data-testid="stBaseButton-primary"]:hover {
+    background: #e0841a !important;
 }
-.stButton button:hover { background: #5c6bc0; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="upload-header">
-    <h1>📤 RetailGPT — Data Upload</h1>
-    <p>Restricted access — Data Analyst only</p>
-</div>
-""", unsafe_allow_html=True)
+render_header()
 
 # ---------------------------------------------------------------------------
 # Password gate
@@ -93,7 +76,7 @@ if "upload_authenticated" not in st.session_state:
     st.session_state.upload_authenticated = False
 
 if not st.session_state.upload_authenticated:
-    st.markdown("### 🔒 Enter upload password")
+    st.markdown("### Enter upload password")
     pwd = st.text_input("Password", type="password", key="upload_pwd")
     if st.button("Login"):
         if pwd == UPLOAD_PASSWORD:
@@ -106,10 +89,10 @@ if not st.session_state.upload_authenticated:
 # ---------------------------------------------------------------------------
 # Authenticated — show upload UI
 # ---------------------------------------------------------------------------
-st.markdown("✅ **Authenticated.** You can upload data files below.")
+st.markdown("**Authenticated.** You can upload data files below.")
 st.markdown("---")
 
-if st.button("🚪 Logout", key="logout_btn"):
+if st.button("Logout", key="logout_btn"):
     st.session_state.upload_authenticated = False
     st.rerun()
 
@@ -128,7 +111,7 @@ from supabase_client import (
 # ---------------------------------------------------------------------------
 # Current data status
 # ---------------------------------------------------------------------------
-st.markdown("### 📊 Current Data Status")
+st.markdown("### Current Data Status")
 col1, col2 = st.columns(2)
 
 with col1:
@@ -144,7 +127,7 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # Section 1: Outlet Data Upload
 # ---------------------------------------------------------------------------
-st.markdown("### 1️⃣ Upload Outlet Sales Data")
+st.markdown("### 1. Upload Outlet Sales Data")
 st.markdown("""
 <div class="info-box">
 Upload <b>OutletFY25.xlsx</b> or <b>OutletFY26.xlsx</b> (daily transactions file).
@@ -181,7 +164,7 @@ if outlet_mode_key == "replace":
         "Make sure the file is complete."
     )
 
-if outlet_file and st.button("📤 Upload Outlet Data", key="upload_outlet_btn", use_container_width=True):
+if outlet_file and st.button("Upload Outlet Data", key="upload_outlet_btn", use_container_width=True):
     # Determine FY
     if fy_input.strip():
         fy = fy_input.strip()
@@ -209,7 +192,7 @@ if outlet_file and st.button("📤 Upload Outlet Data", key="upload_outlet_btn",
             st.dataframe(df.head(5), use_container_width=True)
 
         # DEBUG — remove once column issue is resolved
-        with st.expander("🔍 DEBUG: columns after parsing", expanded=True):
+        with st.expander("DEBUG: columns after parsing", expanded=True):
             cols = df.columns.tolist()
             st.write(f"**Total columns:** {len(cols)}")
             st.write(cols)
@@ -229,12 +212,12 @@ if outlet_file and st.button("📤 Upload Outlet Data", key="upload_outlet_btn",
         # ── REPLACE: delete existing rows first ────────────────────────────
         if outlet_mode_key == "replace":
             del_status = st.empty()
-            del_status.info(f"🗑️ Deleting existing rows for **{fy}**…")
+            del_status.info(f"Deleting existing rows for **{fy}**…")
             del_count, del_err = delete_rows("outlet_data", {"fy": fy})
             if del_err:
-                del_status.error(f"❌ Delete failed: {del_err}. Upload aborted — no rows were changed.")
+                del_status.error(f"Delete failed: {del_err}. Upload aborted — no rows were changed.")
                 st.stop()
-            del_status.success(f"✅ Deleted **{del_count:,}** existing rows for {fy}. Now uploading fresh data…")
+            del_status.success(f"Deleted **{del_count:,}** existing rows for {fy}. Now uploading fresh data…")
 
         # ── INSERT ──────────────────────────────────────────────────────────
         progress_bar.progress(0.1, text="Uploading to Supabase…")
@@ -246,7 +229,7 @@ if outlet_file and st.button("📤 Upload Outlet Data", key="upload_outlet_btn",
                 0.1 + frac * 0.9,
                 text=f"Uploading… {uploaded:,} of {total:,} rows ({int(frac * 100)}%)",
             )
-            row_counter.markdown(f"⬆️ **{uploaded:,}** of **{total:,}** rows uploaded…")
+            row_counter.markdown(f"**{uploaded:,}** of **{total:,}** rows uploaded…")
 
         rows_done, err = upload_dataframe(
             df,
@@ -260,22 +243,22 @@ if outlet_file and st.button("📤 Upload Outlet Data", key="upload_outlet_btn",
         progress_bar.progress(1.0, text="Done!")
         if err and err.startswith("Upload complete."):
             # Partial success — some batches skipped after retries
-            st.warning(f"⚠️ {err}")
+            st.warning(err)
             clear_data_cache()
-            st.info("✨ App data cache cleared. The chat page will reload fresh data on next query.")
+            st.info("App data cache cleared. The chat page will reload fresh data on next query.")
         elif err:
             st.markdown(
-                f'<div class="error-box">❌ Upload failed at {rows_done:,} rows. Error: {err}</div>',
+                f'<div class="error-box">Upload failed at {rows_done:,} rows. Error: {err}</div>',
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                f'<div class="success-box">✅ Successfully uploaded <b>{rows_done:,}</b> rows to outlet_data '
+                f'<div class="success-box">Successfully uploaded <b>{rows_done:,}</b> rows to outlet_data '
                 f'({outlet_mode_key.upper()} mode).</div>',
                 unsafe_allow_html=True,
             )
             clear_data_cache()
-            st.info("✨ App data cache cleared. The chat page will reload fresh data on next query.")
+            st.info("App data cache cleared. The chat page will reload fresh data on next query.")
 
     except Exception as e:
         st.markdown(
@@ -288,7 +271,7 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # Section 2: Target Data Upload
 # ---------------------------------------------------------------------------
-st.markdown("### 2️⃣ Upload Monthly Targets")
+st.markdown("### 2. Upload Monthly Targets")
 st.markdown("""
 <div class="info-box">
 Upload the monthly target file (e.g. <b>TargetMar26.xlsx</b>).
@@ -315,7 +298,7 @@ target_mode_key = "append" if target_mode.startswith("APPEND") else "replace"
 if target_mode_key == "replace":
     st.warning("⚠️ **REPLACE mode** will delete ALL existing target data.")
 
-if target_file and st.button("📤 Upload Target Data", key="upload_target_btn", use_container_width=True):
+if target_file and st.button("Upload Target Data", key="upload_target_btn", use_container_width=True):
     progress_bar_t = st.progress(0, text="Parsing Excel file…")
 
     try:
@@ -339,15 +322,15 @@ if target_file and st.button("📤 Upload Target Data", key="upload_target_btn",
             if "month" in df_t.columns and "year" in df_t.columns:
                 t_month = int(df_t["month"].iloc[0])
                 t_year  = int(df_t["year"].iloc[0])
-                del_status_t.info(f"🗑️ Deleting existing targets for **{t_month}/{t_year}**…")
+                del_status_t.info(f"Deleting existing targets for **{t_month}/{t_year}**…")
                 del_count_t, del_err_t = delete_rows("targets", {"month": t_month, "year": t_year})
             else:
-                del_status_t.info("🗑️ Deleting all existing targets…")
+                del_status_t.info("Deleting all existing targets…")
                 del_count_t, del_err_t = delete_rows("targets")
             if del_err_t:
-                del_status_t.error(f"❌ Delete failed: {del_err_t}. Upload aborted — no rows were changed.")
+                del_status_t.error(f"Delete failed: {del_err_t}. Upload aborted — no rows were changed.")
                 st.stop()
-            del_status_t.success(f"✅ Deleted **{del_count_t:,}** existing target rows. Now uploading fresh data…")
+            del_status_t.success(f"Deleted **{del_count_t:,}** existing target rows. Now uploading fresh data…")
 
         # ── INSERT ──────────────────────────────────────────────────────────
         progress_bar_t.progress(0.1, text="Uploading…")
@@ -359,7 +342,7 @@ if target_file and st.button("📤 Upload Target Data", key="upload_target_btn",
                 0.1 + frac * 0.9,
                 text=f"Uploading… {uploaded:,} of {total:,} rows ({int(frac * 100)}%)",
             )
-            row_counter_t.markdown(f"⬆️ **{uploaded:,}** of **{total:,}** rows uploaded…")
+            row_counter_t.markdown(f"**{uploaded:,}** of **{total:,}** rows uploaded…")
 
         rows_done_t, err_t = upload_dataframe(
             df_t,
@@ -372,16 +355,16 @@ if target_file and st.button("📤 Upload Target Data", key="upload_target_btn",
 
         progress_bar_t.progress(1.0, text="Done!")
         if err_t and err_t.startswith("Upload complete."):
-            st.warning(f"⚠️ {err_t}")
+            st.warning(err_t)
             clear_data_cache()
         elif err_t:
             st.markdown(
-                f'<div class="error-box">❌ Upload failed at {rows_done_t:,} rows. Error: {err_t}</div>',
+                f'<div class="error-box">Upload failed at {rows_done_t:,} rows. Error: {err_t}</div>',
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                f'<div class="success-box">✅ Successfully uploaded <b>{rows_done_t:,}</b> target rows '
+                f'<div class="success-box">Successfully uploaded <b>{rows_done_t:,}</b> target rows '
                 f'({target_mode_key.upper()} mode).</div>',
                 unsafe_allow_html=True,
             )
@@ -398,7 +381,7 @@ st.markdown("---")
 # ---------------------------------------------------------------------------
 # Section 3: Table Setup SQL
 # ---------------------------------------------------------------------------
-st.markdown("### 3️⃣ First-time Setup: Create Tables")
+st.markdown("### 3. First-time Setup: Create Tables")
 st.markdown("""
 <div class="info-box">
 If this is a fresh Supabase project, run the following SQL in the <b>Supabase SQL Editor</b>
@@ -406,7 +389,7 @@ to create the required tables.
 </div>
 """, unsafe_allow_html=True)
 
-with st.expander("📋 Show Setup SQL"):
+with st.expander("Show Setup SQL"):
     st.code("""
 -- outlet_data table
 CREATE TABLE IF NOT EXISTS outlet_data (
@@ -466,6 +449,6 @@ CREATE INDEX IF NOT EXISTS idx_targets_my       ON targets(month, year);
 st.markdown("""
 <br>
 <div style="text-align:center; color:#444; font-size:0.8rem;">
-RetailGPT · Data Upload · Restricted Access
+DESi Field AI · Data Upload · Restricted Access
 </div>
 """, unsafe_allow_html=True)

@@ -5,7 +5,15 @@
       "Bash(python -c \"import tabulate; print\\(''ok''\\)\")",
       "Bash(pip3 install:*)",
       "Bash(python3 -c \"import tabulate, supabase, anthropic, rapidfuzz, markdown; print\\(''All packages OK''\\)\")",
-      "Bash(python3 -m py_compile fuzzy_matcher.py metrics.py supabase_client.py prompts.py query_engine.py app.py pages/upload.py)"
+      "Bash(python3 -m py_compile fuzzy_matcher.py metrics.py supabase_client.py prompts.py query_engine.py app.py pages/upload.py)",
+      "Bash(git add *)",
+      "Bash(python -c ' *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('app.py'\\).read\\(\\)\\); print\\('app.py OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('query_engine.py'\\).read\\(\\)\\); print\\('query_engine.py OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('supabase_client.py'\\).read\\(\\)\\); print\\('supabase_client.py OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('pages/upload.py'\\).read\\(\\)\\); print\\('upload.py OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('prompts.py'\\).read\\(\\)\\); print\\('prompts.py OK'\\)\")"
     ]
   }
 }

@@ -2,15 +2,6 @@
 query_engine.py
 Core logic: understands a natural language question → fetches only needed rows
 → calculates metrics → formats response.
-
-Flow:
-  1. Claude extracts structured intent (entities, time range, query type).
-  2. fuzzy_matcher resolves all mentioned names against the pre-loaded name lists.
-  3. If names are ambiguous, return a clarification instead of answering.
-  4. Compute the date range for the question (pushed to DB as a filter).
-  5. Fetch only the matching rows from Supabase (on demand, no full-table load).
-  6. Calculate metrics on the small result set using metrics.py.
-  7. Claude formats the final natural-language response.
 """
 
 import json
@@ -40,6 +31,13 @@ load_dotenv()
 
 MODEL      = "claude-sonnet-4-5"
 MAX_TOKENS = 2048
+
+_OUT_OF_SCOPE_MSG = (
+    "I am built specifically for GO DESi sales intelligence. "
+    "I can help you with secondary sales, targets, productivity metrics, "
+    "outlet data and team performance. "
+    "Please ask me something related to your sales data."
+)
 
 MONTH_NAMES = {
     1: "January", 2: "February", 3: "March",    4: "April",
@@ -88,8 +86,8 @@ class QueryEngine:
         """
         Process a user question.
         user_scope: e.g. {"rsm": "Ravi Kumar"} or {"asm": "Puneeth"} — the
-                    logged-in user's identity, applied as a default filter when
-                    no explicit entity is mentioned in the question.
+                    logged-in user's identity, injected BEFORE fuzzy matching
+                    so their own name is never sent through the fuzzy matcher.
         Returns (response_text, updated_session_context).
         """
         if self._latest_date is None:
@@ -107,14 +105,22 @@ class QueryEngine:
                     session_context,
                 )
 
+            # FIX 5: reject completely off-topic questions
+            if not intent.get("is_sales_query", True):
+                return _OUT_OF_SCOPE_MSG, session_context
+
+            # FIX 2: carry forward entity + time context from previous turn
             if intent.get("context_from_history"):
                 intent = self._merge_context(intent, session_context)
 
-            # Apply the logged-in user's scope as a last-resort default
+            # FIX 1: inject user scope BEFORE fuzzy matching and track which
+            # fields were pre-filled so they are NEVER fuzzy-matched
             if user_scope:
-                intent = self._apply_user_scope(intent, user_scope)
+                intent, user_scope_fields = self._apply_user_scope(intent, user_scope)
+            else:
+                user_scope_fields = set()
 
-            resolved, clarification = self._resolve_entities(intent)
+            resolved, clarification = self._resolve_entities(intent, skip_fields=user_scope_fields)
             if clarification:
                 return clarification, session_context
 
@@ -123,6 +129,8 @@ class QueryEngine:
 
             return response, new_context
 
+        except ConnectionError as ce:
+            return str(ce), session_context
         except Exception:
             return (
                 "I ran into an issue processing your question. "
@@ -158,34 +166,62 @@ class QueryEngine:
     # ------------------------------------------------------------------
 
     def _merge_context(self, intent: dict, ctx: dict) -> dict:
+        """FIX 2: carry forward entity fields AND time range from previous turn."""
         for key in ["rsm", "asm", "so", "beat", "outlet", "state", "zone"]:
             if not intent.get(key) and ctx.get(key):
                 intent[key] = ctx[key]
+        # Carry time range forward when the new intent has the default "mtd"
+        # (i.e. the user didn't explicitly state a time period this turn)
+        if intent.get("time_range", "mtd") == "mtd" and ctx.get("last_time_range"):
+            intent["time_range"] = ctx["last_time_range"]
+            if ctx.get("last_specific_month") and not intent.get("specific_month"):
+                intent["specific_month"] = ctx["last_specific_month"]
+            if ctx.get("last_specific_year") and not intent.get("specific_year"):
+                intent["specific_year"] = ctx["last_specific_year"]
         return intent
 
-    def _apply_user_scope(self, intent: dict, user_scope: dict) -> dict:
+    def _apply_user_scope(self, intent: dict, user_scope: dict) -> tuple[dict, set]:
         """
-        Fill in the logged-in user's identity for any entity fields that are
-        still empty after intent extraction and context merge.
-        Only fills — never overwrites an explicit mention.
+        FIX 1: Fill in the logged-in user's identity for empty entity fields.
+        Returns (updated_intent, set_of_fields_that_were_filled).
+        Filled fields are skipped entirely by fuzzy matching — their values are
+        exact canonical names from the DB (selected via onboarding multiselect).
         """
+        filled: set = set()
         for key, val in user_scope.items():
             if not intent.get(key):
                 intent[key] = val
-        return intent
+                filled.add(key)
+        return intent, filled
 
     def _build_new_context(self, resolved: dict, old_ctx: dict) -> dict:
+        """FIX 2: save entity fields AND time range for the next turn."""
         ctx = dict(old_ctx)
         for key in ["rsm", "asm", "so", "beat", "outlet", "state", "zone"]:
             if resolved.get(key):
                 ctx[key] = resolved[key]
+        # Save time context
+        if resolved.get("time_range"):
+            ctx["last_time_range"] = resolved["time_range"]
+        if resolved.get("specific_month"):
+            ctx["last_specific_month"] = resolved["specific_month"]
+        if resolved.get("specific_year"):
+            ctx["last_specific_year"] = resolved["specific_year"]
         return ctx
 
     # ------------------------------------------------------------------
     # Step 3: Fuzzy name resolution
     # ------------------------------------------------------------------
 
-    def _resolve_entities(self, intent: dict) -> tuple[dict, str | None]:
+    def _resolve_entities(
+        self, intent: dict, skip_fields: set = None
+    ) -> tuple[dict, str | None]:
+        """
+        FIX 1: skip_fields contains entity keys that were pre-filled by user scope.
+        These hold exact canonical names from the DB and must NOT go through fuzzy
+        matching — doing so risks asking the logged-in user to clarify their own name.
+        """
+        skip_fields = skip_fields or set()
         resolved = dict(intent)
         checks = [
             ("so",     self._so_names,     "Sales Officer"),
@@ -197,8 +233,12 @@ class QueryEngine:
             ("zone",   self._zones,        "Region/Zone"),
         ]
         for field, candidates, label in checks:
+            # Pre-resolved from user scope — use value as-is
+            if field in skip_fields:
+                resolved[field] = intent.get(field)
+                continue
             raw = intent.get(field)
-            # Already a resolved list (from user_scope) — skip fuzzy matching
+            # Already a resolved list — skip fuzzy matching
             if isinstance(raw, list):
                 resolved[field] = raw
                 continue
@@ -411,6 +451,8 @@ class QueryEngine:
         df  = self._fetch_outlet(resolved, date_start, date_end, cats)
         df  = apply_time_filter(df, time_range,
                                 resolved.get("specific_month"), resolved.get("specific_year"))
+        if df.empty:
+            return self._no_data_response(resolved, time_label)
         m   = calc_metrics(df)
 
         tgt_row = None
@@ -451,6 +493,8 @@ class QueryEngine:
             group_by = "so" if (resolved.get("asm") or resolved.get("rsm")) else "asm"
         group_col = col_map.get(group_by, group_by)
 
+        if df.empty:
+            return self._no_data_response(resolved, time_label)
         if group_col not in df.columns:
             return f"Time period: {time_label}\nNo data available for grouping by {group_by}."
 
@@ -806,7 +850,7 @@ class QueryEngine:
 
         if total == 0:
             return (
-                f"All outlets active in the last 3 months have been billed this month. 🎉\n"
+                f"All outlets active in the last 3 months have been billed this month.\n"
                 f"Total billed outlets MTD: {len(cm_billed):,}"
             )
 
@@ -832,6 +876,29 @@ class QueryEngine:
             f"Unbilled Outlets — MTD {MONTH_NAMES.get(latest.month,'')} {latest.year}\n"
             f"Total: {total:,} outlets active in L3M but NO orders this month\n\n"
             f"{table}"
+        )
+
+    # ------------------------------------------------------------------
+    # FIX 6: zero-results helpers
+    # ------------------------------------------------------------------
+
+    def _describe_entity(self, resolved: dict) -> str:
+        parts = []
+        for key, label in [("rsm", "RSM"), ("asm", "ASM"), ("so", "SO"),
+                            ("beat", "Beat"), ("state", "State")]:
+            val = resolved.get(key)
+            if val:
+                name = ", ".join(val) if isinstance(val, list) else val
+                parts.append(f"{label} {name}")
+        return " | ".join(parts) if parts else "the selected filters"
+
+    def _no_data_response(self, resolved: dict, time_label: str) -> str:
+        entity = self._describe_entity(resolved)
+        return (
+            f"No data found for **{entity}** for **{time_label}**. "
+            f"This could mean no transactions were recorded in this period, "
+            f"or the filters applied returned no results. "
+            f"Try a different time period or check if the data has been uploaded for this period."
         )
 
     # ------------------------------------------------------------------
