@@ -664,6 +664,72 @@ def upload_dataframe(
     return uploaded, None
 
 
+# ---------------------------------------------------------------------------
+# Access control — approved_users table
+# ---------------------------------------------------------------------------
+
+def check_user_access(email: str) -> dict | None:
+    """Query approved_users by email (case-insensitive). Returns user dict or None."""
+    try:
+        client = get_supabase()
+        resp = (
+            client.table("approved_users")
+            .select("*")
+            .eq("email", email.lower().strip())
+            .eq("active", True)
+            .execute()
+        )
+        if resp.data:
+            return resp.data[0]
+        return None
+    except Exception:
+        return None
+
+
+def add_approved_user(email: str, role: str, name: str) -> tuple[bool, str]:
+    """Insert a new row into approved_users. Returns (success, error_message)."""
+    try:
+        client = get_supabase()
+        client.table("approved_users").insert({
+            "email": email.lower().strip(),
+            "role":  role,
+            "name":  name,
+            "active": True,
+        }).execute()
+        return True, None
+    except Exception as e:
+        err = str(e)
+        if "unique" in err.lower() or "duplicate" in err.lower() or "23505" in err:
+            return False, "This email already has access."
+        return False, err
+
+
+def remove_approved_user(email: str) -> tuple[bool, str]:
+    """Set active = false for the given email. Returns (success, error_message)."""
+    try:
+        client = get_supabase()
+        client.table("approved_users").update({"active": False}).eq("email", email).execute()
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+
+def get_all_approved_users() -> list[dict]:
+    """Return all active rows from approved_users, ordered by created_at."""
+    try:
+        client = get_supabase()
+        resp = (
+            client.table("approved_users")
+            .select("*")
+            .eq("active", True)
+            .order("created_at")
+            .execute()
+        )
+        return resp.data or []
+    except Exception:
+        return []
+
+
 def upsert_dataframe(
     df: pd.DataFrame,
     table: str,

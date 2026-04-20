@@ -13,9 +13,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Import render_header from the main app module
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from app import render_header  # noqa: E402
+from page_utils import render_header  # noqa: E402
 
 st.set_page_config(
     page_title="DESi Field AI — Data Upload",
@@ -70,7 +69,19 @@ st.markdown("""
 render_header()
 
 # ---------------------------------------------------------------------------
-# Password gate
+# Master access guard
+# ---------------------------------------------------------------------------
+if not st.session_state.get("user_email") or st.session_state.get("user_role") != "Master":
+    st.error("You don't have access to this page.")
+    if st.button("Back to DESi Field AI", key="upload_back_guard"):
+        st.switch_page("app.py")
+    st.stop()
+
+if st.button("Back to DESi Field AI", key="upload_back_top"):
+    st.switch_page("app.py")
+
+# ---------------------------------------------------------------------------
+# Password gate (secondary check kept for direct URL access safety)
 # ---------------------------------------------------------------------------
 if "upload_authenticated" not in st.session_state:
     st.session_state.upload_authenticated = False

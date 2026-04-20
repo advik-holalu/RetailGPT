@@ -30,6 +30,28 @@ UPLOAD_PASSWORD=your_secret_password
 
 Open the **SQL Editor** in your Supabase dashboard and run:
 
+**Access control table (run this first):**
+
+```sql
+CREATE TABLE IF NOT EXISTS approved_users (
+    id         BIGSERIAL PRIMARY KEY,
+    email      TEXT UNIQUE NOT NULL,
+    role       TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    active     BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT now()
+);
+```
+
+After creating the table, insert at least one Master user so you can log in:
+
+```sql
+INSERT INTO approved_users (email, role, name)
+VALUES ('your@email.com', 'Master', 'Admin');
+```
+
+**Sales data tables:**
+
 ```sql
 -- outlet_data table
 CREATE TABLE IF NOT EXISTS outlet_data (
