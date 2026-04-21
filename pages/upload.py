@@ -22,8 +22,6 @@ st.set_page_config(
     layout="centered",
 )
 
-UPLOAD_PASSWORD = os.environ.get("UPLOAD_PASSWORD", "")
-
 # ---------------------------------------------------------------------------
 # Custom CSS
 # ---------------------------------------------------------------------------
@@ -81,24 +79,7 @@ if st.button("Back to DESi Field AI", key="upload_back_top"):
     st.switch_page("app.py")
 
 # ---------------------------------------------------------------------------
-# Password gate (secondary check kept for direct URL access safety)
-# ---------------------------------------------------------------------------
-if "upload_authenticated" not in st.session_state:
-    st.session_state.upload_authenticated = False
-
-if not st.session_state.upload_authenticated:
-    st.markdown("### Enter upload password")
-    pwd = st.text_input("Password", type="password", key="upload_pwd")
-    if st.button("Login"):
-        if pwd == UPLOAD_PASSWORD:
-            st.session_state.upload_authenticated = True
-            st.rerun()
-        else:
-            st.error("Incorrect password. Please try again.")
-    st.stop()
-
-# ---------------------------------------------------------------------------
-# Authenticated — show upload UI
+# Upload UI
 # ---------------------------------------------------------------------------
 st.markdown("**Authenticated.** You can upload data files below.")
 st.markdown("---")

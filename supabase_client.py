@@ -668,8 +668,20 @@ def upload_dataframe(
 # Access control — approved_users table
 # ---------------------------------------------------------------------------
 
-def check_user_access(email: str) -> dict | None:
-    """Query approved_users by email (case-insensitive). Returns user dict or None."""
+import hashlib
+
+
+def hash_password(password: str) -> str:
+    """Return SHA-256 hex digest of the given password string."""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def check_user_access(email: str) -> list[dict]:
+    """
+    Return all active approved_users rows for this email (case-insensitive).
+    Used for step 1 of login (email existence check only, no password).
+    Returns an empty list if no access.
+    """
     try:
         client = get_supabase()
         resp = (
@@ -679,36 +691,102 @@ def check_user_access(email: str) -> dict | None:
             .eq("active", True)
             .execute()
         )
-        if resp.data:
-            return resp.data[0]
-        return None
+        return resp.data or []
     except Exception:
-        return None
+        return []
 
 
-def add_approved_user(email: str, role: str, name: str) -> tuple[bool, str]:
-    """Insert a new row into approved_users. Returns (success, error_message)."""
+def verify_user_login(email: str, password_hash: str) -> list[dict]:
+    """
+    Return active rows matching both email and password hash.
+    Used for step 2 of login (password verification).
+    """
     try:
         client = get_supabase()
+        resp = (
+            client.table("approved_users")
+            .select("*")
+            .eq("email", email.lower().strip())
+            .eq("password", password_hash)
+            .eq("active", True)
+            .execute()
+        )
+        return resp.data or []
+    except Exception:
+        return []
+
+
+def add_approved_user(email: str, role: str, name: str, password: str) -> tuple[bool, str]:
+    """
+    Insert a new row into approved_users with a hashed password.
+    Blocks exact duplicates (same email + role + name + active).
+    Same email with a different role or name is allowed (dual-role users).
+    Returns (success, error_message).
+    """
+    try:
+        client = get_supabase()
+        dup = (
+            client.table("approved_users")
+            .select("id")
+            .eq("email", email.lower().strip())
+            .eq("role",  role)
+            .eq("name",  name)
+            .eq("active", True)
+            .execute()
+        )
+        if dup.data:
+            return False, "This user already has this role assigned."
         client.table("approved_users").insert({
-            "email": email.lower().strip(),
-            "role":  role,
-            "name":  name,
-            "active": True,
+            "email":    email.lower().strip(),
+            "role":     role,
+            "name":     name,
+            "active":   True,
+            "password": hash_password(password),
         }).execute()
         return True, None
     except Exception as e:
-        err = str(e)
-        if "unique" in err.lower() or "duplicate" in err.lower() or "23505" in err:
-            return False, "This email already has access."
-        return False, err
+        return False, str(e)
 
 
-def remove_approved_user(email: str) -> tuple[bool, str]:
-    """Set active = false for the given email. Returns (success, error_message)."""
+def remove_approved_user(row_id: int) -> tuple[bool, str]:
+    """
+    Set active = false for the row with the given id.
+    Verifies the update took effect before returning success.
+    """
     try:
         client = get_supabase()
-        client.table("approved_users").update({"active": False}).eq("email", email).execute()
+        client.table("approved_users").update({"active": False}).eq("id", row_id).execute()
+        verify = (
+            client.table("approved_users")
+            .select("active")
+            .eq("id", row_id)
+            .execute()
+        )
+        if verify.data and verify.data[0].get("active") is False:
+            return True, None
+        return False, "Update did not take effect. Please try again."
+    except Exception as e:
+        return False, str(e)
+
+
+def update_approved_user(
+    row_id: int, email: str, role: str, name: str, password: str = None
+) -> tuple[bool, str]:
+    """
+    Update an approved_users row by id.
+    Only updates password if a new one is provided (non-empty string).
+    Returns (success, error_message).
+    """
+    try:
+        client = get_supabase()
+        updates = {
+            "email": email.lower().strip(),
+            "role":  role,
+            "name":  name,
+        }
+        if password and password.strip():
+            updates["password"] = hash_password(password)
+        client.table("approved_users").update(updates).eq("id", row_id).execute()
         return True, None
     except Exception as e:
         return False, str(e)

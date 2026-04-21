@@ -143,15 +143,19 @@ with _tab_access:
                 "Name (no names found in data - enter manually)", key="add_name_manual"
             )
 
-    _add_email = st.text_input("Work email", placeholder="user@company.com", key="add_email")
+    _add_email    = st.text_input("Work email", placeholder="user@company.com", key="add_email")
+    _add_password = st.text_input("Set Password", type="password", key="add_password",
+                                  placeholder="Set a password for this user")
 
     if st.button("Add User", key="add_user_btn", type="primary"):
         if not _add_email.strip():
             st.error("Please enter an email address.")
         elif not str(_add_name).strip():
             st.error("Please select or enter a name.")
+        elif not _add_password.strip():
+            st.error("Please set a password for this user.")
         else:
-            _ok, _err = add_approved_user(_add_email.strip(), _add_role, str(_add_name).strip())
+            _ok, _err = add_approved_user(_add_email.strip(), _add_role, str(_add_name).strip(), _add_password)
             if _ok:
                 st.success(f"User added: {_add_email.strip()} ({_add_role} - {_add_name})")
                 st.rerun()
@@ -201,10 +205,10 @@ with _tab_access:
                 f'<div style="font-size:0.82rem;color:#AAAAAA;padding:0.4rem 0;">{_dt}</div>',
                 unsafe_allow_html=True,
             )
-            if _rc2[4].button("Remove", key=f"rm_{_u.get('email','')}", use_container_width=True):
-                _rm_ok, _rm_err = remove_approved_user(_u["email"])
+            if _rc2[4].button("Remove", key=f"rm_{_u.get('id', _u.get('email',''))}", use_container_width=True):
+                _rm_ok, _rm_err = remove_approved_user(_u["id"])
                 if _rm_ok:
-                    st.success(f"Access removed for {_u['email']}")
+                    st.success(f"Access removed for {_u['email']} ({_u.get('role','')} - {_u.get('name','')})")
                     st.rerun()
                 else:
                     st.error(_rm_err or "Failed to remove access.")

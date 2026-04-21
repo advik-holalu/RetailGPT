@@ -42,6 +42,8 @@ for _k, _v in [
     ("selected_categories", []),
     ("ob_names",            None),
     ("names_loaded",        False),
+    ("pending_roles",       []),     # list of user dicts when multiple roles found
+    ("login_error",         None),   # persisted error message across reruns
 ]:
     if _k not in st.session_state:
         st.session_state[_k] = _v
@@ -49,7 +51,7 @@ for _k, _v in [
 # ---------------------------------------------------------------------------
 # Lazy imports
 # ---------------------------------------------------------------------------
-from supabase_client import load_names, get_latest_date_str, get_categories, check_user_access
+from supabase_client import load_names, get_latest_date_str, get_categories, check_user_access, verify_user_login
 from query_engine import QueryEngine
 from metrics import MONTH_NAMES
 
@@ -299,6 +301,38 @@ div:has(> .prompts-cols-marker) + div [data-testid="stColumn"] > div {
     .bubble-bot table { font-size: 0.78rem !important; }
     .bubble-bot table th, .bubble-bot table td { padding: 0.3rem 0.5rem !important; }
 }
+            
+/* Default (unselected) buttons — dark like dropdown */
+[data-testid="stColumn"]:has(.master-left-marker) 
+[data-testid="stBaseButton-secondary"] {
+    background: #2A2A2A !important;
+    color: #FFFFFF !important;
+    border: 1px solid #2A2A2A !important;
+}
+
+/* Selected button — white */
+[data-testid="stColumn"]:has(.master-left-marker) 
+[data-testid="stBaseButton-primary"] {
+    background: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border: none !important;
+    font-weight: 700 !important;
+}
+
+/* Restore red chips in multiselect */
+[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+    background: #FF4B4B !important;
+    color: #FFFFFF !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+}
+
+/* Optional: better hover */
+[data-testid="stColumn"]:has(.master-left-marker) 
+[data-testid="stBaseButton-secondary"]:hover {
+    background: #333333 !important;
+    border-color: #333333 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -318,6 +352,118 @@ def main():  # noqa: C901
         f'style="width:68px;height:68px;object-fit:contain;margin-bottom:0.75rem;">'
         if _LOGO_B64 else ""
     )
+
+    # ── ROLE SELECTION SCREEN (dual-role users) ───────────────────────────
+    if st.session_state.pending_roles and not st.session_state.user_email:
+        _pr = st.session_state.pending_roles
+
+        import base64 as _b64r
+        _role_img_b64 = ""
+        try:
+            with open(os.path.join(os.path.dirname(__file__), "assets", "LOGIN.png"), "rb") as _f:
+                _role_img_b64 = _b64r.b64encode(_f.read()).decode()
+        except Exception:
+            pass
+
+        st.markdown("""
+<style>
+[data-testid="stHorizontalBlock"]:has(.role-left-marker) {
+    gap: 0 !important; border-radius: 20px !important;
+    overflow: hidden !important; box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
+}
+[data-testid="stColumn"]:has(.role-left-marker),
+[data-testid="stColumn"]:has(.role-left-marker) > div,
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlock"] {
+    background: #F7941D !important; min-height: 520px !important;
+}
+[data-testid="stColumn"]:has(.role-left-marker) > div {
+    padding: 2.5rem 3rem 2rem !important;
+}
+[data-testid="stColumn"]:has(.role-right-marker),
+[data-testid="stColumn"]:has(.role-right-marker) > div,
+[data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlock"] {
+    background: #2a2a2a !important; min-height: 520px !important;
+    padding: 0 !important; overflow: hidden !important;
+}
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stHorizontalBlock"] {
+    gap: 0 !important; box-shadow: none !important;
+    border-radius: 0 !important; overflow: visible !important;
+}
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"],
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"] > div,
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlock"] {
+    background: transparent !important; min-height: unset !important; padding: 0 !important;
+}
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stBaseButton-primary"] {
+    background: #FFFFFF !important; color: #1a1a1a !important;
+    border: none !important; font-weight: 700 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+        _rl_left, _rl_right = st.columns([55, 45])
+
+        with _rl_left:
+            st.markdown('<div class="role-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
+            # Logo + title
+            st.markdown(f"""
+<div style="font-family:'Inter',system-ui,sans-serif;">
+  <div style="display:flex;align-items:center;gap:1.4rem;">
+    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
+    <div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+            st.markdown('<div style="height:240px;"></div>', unsafe_allow_html=True)
+
+            st.markdown("""
+<div style="font-family:'Inter',sans-serif;margin-bottom:1rem;">
+  <div style="font-size:1.45rem;font-weight:800;color:#fff;margin-bottom:0.35rem;">
+    Welcome, you have multiple roles assigned
+  </div>
+  <div style="font-size:0.88rem;color:rgba(255,255,255,0.75);">
+    Select who you want to go forward as, can be changed later on too
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+            _role_options = [f"{u.get('role', '')} - {u.get('name', '')}" for u in _pr]
+            _role_choice = st.selectbox(
+                "Select your role",
+                options=_role_options,
+                index=0,
+                key="role_select",
+                label_visibility="collapsed",
+            )
+            st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
+            if st.button("Continue", key="role_confirm", type="primary", use_container_width=True):
+                _idx = _role_options.index(_role_choice)
+                _pr_user = _pr[_idx]
+                st.session_state.user_email    = _pr_user["email"]
+                st.session_state.user_role     = _pr_user["role"]
+                st.session_state.user_name     = _pr_user["name"]
+                st.session_state.pending_roles = []
+                if _pr_user["role"] in ("RSM", "ASM"):
+                    st.session_state.user_names    = [_pr_user["name"]]
+                    st.session_state.selected_role = _pr_user["role"]
+                st.rerun()
+
+        with _rl_right:
+            st.markdown('<div class="role-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
+            if _role_img_b64:
+                st.markdown(
+                    f'<img src="data:image/png;base64,{_role_img_b64}" '
+                    f'style="width:100%;height:100%;min-height:520px;object-fit:cover;display:block;">',
+                    unsafe_allow_html=True,
+                )
+        return
 
     # ── LOGIN SCREEN ──────────────────────────────────────────────────────
     if not st.session_state.user_email:
@@ -400,17 +546,17 @@ def main():  # noqa: C901
         except Exception:
             pass
 
-        # Inject login card CSS — use :has() from INSIDE each column (reliable)
+        # Login card CSS
         st.markdown("""
 <style>
-/* ── Overall card: rounded + shadow on the HorizontalBlock that contains left marker ── */
+/* ── Overall card ── */
 [data-testid="stHorizontalBlock"]:has(.login-left-marker) {
     gap: 0 !important;
     border-radius: 20px !important;
     overflow: hidden !important;
     box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
 }
-/* ── Left orange panel: target every wrapper div inside the column ── */
+/* ── Left orange panel ── */
 [data-testid="stColumn"]:has(.login-left-marker),
 [data-testid="stColumn"]:has(.login-left-marker) > div,
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
@@ -419,21 +565,21 @@ def main():  # noqa: C901
     min-height: 520px !important;
 }
 [data-testid="stColumn"]:has(.login-left-marker) > div {
-    padding: 2.5rem 2.2rem 2rem !important;
+    padding: 2.5rem 3rem 2rem !important;
 }
 /* ── Right white panel ── */
 [data-testid="stColumn"]:has(.login-right-marker),
 [data-testid="stColumn"]:has(.login-right-marker) > div,
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlock"] {
-    background: #FFFFFF !important;
+    background: #2a2a2a !important;
     min-height: 520px !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
-/* ── Inner sub-columns (input+button row) stay transparent ── */
+/* ── Nested columns inside left panel stay transparent ── */
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stHorizontalBlock"] {
-    gap: 0.5rem !important; box-shadow: none !important;
+    gap: 0 !important; box-shadow: none !important;
     border-radius: 0 !important; overflow: visible !important;
 }
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stColumn"],
@@ -444,6 +590,10 @@ def main():  # noqa: C901
     min-height: unset !important;
     padding: 0 !important;
 }
+[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stBaseButton-secondary"] {
+    background: #FFFFFF !important;
+    color: #2a2a2a !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -451,14 +601,14 @@ def main():  # noqa: C901
 
         with _lc_left:
             st.markdown('<div class="login-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
-            # Top: logo + title
+            # Logo + title
             st.markdown(f"""
 <div style="font-family:'Inter',system-ui,sans-serif;">
-  <div style="display:flex;align-items:center;gap:1.1rem;">
-    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:72px;height:72px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
+  <div style="display:flex;align-items:center;gap:1.4rem;">
+    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
-      <div style="font-size:2.8rem;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-0.02em;">Retail AI</div>
-      <div style="font-size:0.88rem;font-weight:500;color:rgba(255,255,255,0.82);margin-top:0.25rem;letter-spacing:0.01em;">
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1.05;letter-spacing:-0.03em;">Retail AI</div>
+      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.85);margin-top:0.3rem;letter-spacing:0.01em;">
         AI Powered Sales Intelligence
       </div>
     </div>
@@ -466,55 +616,74 @@ def main():  # noqa: C901
 </div>
 """, unsafe_allow_html=True)
 
-            # Spacer
-            st.markdown('<div style="height:480px;"></div>', unsafe_allow_html=True)
+            # Spacer — pushes fields to the bottom of the panel
+            st.markdown('<div style="height:400px;"></div>', unsafe_allow_html=True)
 
-            # CTA label
-            st.markdown(
-                '<p style="color:rgba(255,255,255,0.9);font-size:0.88rem;font-weight:600;'
-                'margin:0 0 0.4rem;letter-spacing:0.01em;">Sign in with your GO DESi email ID</p>',
-                unsafe_allow_html=True,
+            # Email field
+            _email_val = st.text_input(
+                "email",
+                placeholder="enter your GO DESi email ID (you@godesi.in)",
+                key="login_email_input",
+                label_visibility="collapsed",
             )
 
-            # Email + Sign in row
-            _ie, _ib = st.columns([10, 3])
-            with _ie:
-                _email_input = st.text_input(
-                    "email",
-                    placeholder="you@godesi.in",
-                    key="login_email",
-                    label_visibility="collapsed",
-                )
-            with _ib:
-                _signin_clicked = st.button("sign in", key="login_signin",
-                                            use_container_width=True)
+            # Password field
+            _pwd_val = st.text_input(
+                "password",
+                type="password",
+                placeholder="enter your assigned password",
+                key="login_pwd_input",
+                label_visibility="collapsed",
+            )
 
-            # Error pill
+            # Sign in button — full width
+            _signin_clicked = st.button("sign in", key="login_signin", use_container_width=True)
+
+            # Persisted error pill
+            if st.session_state.login_error:
+                st.markdown(
+                    f'<div style="background:#F5D842;color:#1a1a1a;border-radius:20px;'
+                    f'padding:0.35rem 1.1rem;font-size:0.84rem;font-weight:700;'
+                    f'display:inline-block;margin-top:0.4rem;">'
+                    f'{st.session_state.login_error}</div>',
+                    unsafe_allow_html=True,
+                )
+                st.session_state.login_error = None
+
             if _signin_clicked:
-                if not _email_input.strip():
-                    st.markdown("""
-<div style="background:#F5D842;color:#1a1a1a;border-radius:20px;
-    padding:0.35rem 1.1rem;font-size:0.84rem;font-weight:700;
-    display:inline-block;margin-top:0.5rem;">
-  Please enter your work email.
-</div>""", unsafe_allow_html=True)
+                if not _email_val.strip():
+                    st.session_state.login_error = "Please enter your email."
+                    st.rerun()
+                elif not _pwd_val.strip():
+                    st.session_state.login_error = "Please enter your password."
+                    st.rerun()
                 else:
-                    _user = check_user_access(_email_input.strip())
-                    if _user is None:
-                        st.markdown("""
-<div style="background:#F5D842;color:#1a1a1a;border-radius:20px;
-    padding:0.35rem 1.1rem;font-size:0.84rem;font-weight:700;
-    display:inline-block;margin-top:0.5rem;">
-  Incorrect email ID, please try again or contact your manager.
-</div>""", unsafe_allow_html=True)
-                    else:
-                        st.session_state.user_email    = _user["email"]
-                        st.session_state.user_role     = _user["role"]
-                        st.session_state.user_name     = _user["name"]
-                        if _user["role"] in ("RSM", "ASM"):
-                            st.session_state.user_names    = [_user["name"]]
-                            st.session_state.selected_role = _user["role"]
+                    # Step 1: check email exists
+                    _found = check_user_access(_email_val.strip())
+                    if len(_found) == 0:
+                        st.session_state.login_error = (
+                            "Incorrect email ID, please try again or contact your manager."
+                        )
                         st.rerun()
+                    else:
+                        # Step 2: verify password
+                        from supabase_client import hash_password as _hp
+                        _matched = verify_user_login(_email_val.strip(), _hp(_pwd_val))
+                        if len(_matched) == 0:
+                            st.session_state.login_error = "Incorrect password. Please try again."
+                            st.rerun()
+                        elif len(_matched) == 1:
+                            _user = _matched[0]
+                            st.session_state.user_email  = _user["email"]
+                            st.session_state.user_role   = _user["role"]
+                            st.session_state.user_name   = _user["name"]
+                            if _user["role"] in ("RSM", "ASM"):
+                                st.session_state.user_names    = [_user["name"]]
+                                st.session_state.selected_role = _user["role"]
+                            st.rerun()
+                        else:
+                            st.session_state.pending_roles = _matched
+                            st.rerun()
 
         with _lc_right:
             st.markdown('<div class="login-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
@@ -535,67 +704,131 @@ def main():  # noqa: C901
     # ── MASTER SCREEN ─────────────────────────────────────────────────────
     if st.session_state.user_role == "Master" and not st.session_state.master_identity_set:
 
-        # Yellow admin button — in its OWN st.columns call so CSS won't bleed into _mid
+        import base64 as _b64m
+        _master_img_b64 = ""
+        try:
+            with open(os.path.join(os.path.dirname(__file__), "assets", "LOGIN.png"), "rb") as _f:
+                _master_img_b64 = _b64m.b64encode(_f.read()).decode()
+        except Exception:
+            pass
+
         st.markdown("""
 <style>
-[data-testid="stColumn"]:has(.master-admin-marker) [data-testid="stBaseButton-secondary"] {
+/* ── Master card ── */
+[data-testid="stHorizontalBlock"]:has(.master-left-marker) {
+    gap: 0 !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
+}
+[data-testid="stColumn"]:has(.master-left-marker),
+[data-testid="stColumn"]:has(.master-left-marker) > div,
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlock"] {
+    background: #F7941D !important;
+    min-height: 520px !important;
+}
+[data-testid="stColumn"]:has(.master-left-marker) > div {
+    padding: 2.5rem 3rem 2rem !important;
+}
+[data-testid="stColumn"]:has(.master-right-marker),
+[data-testid="stColumn"]:has(.master-right-marker) > div,
+[data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlock"] {
+    background: #2a2a2a !important;
+    min-height: 520px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stHorizontalBlock"] {
+    gap: 0 !important; box-shadow: none !important;
+    border-radius: 0 !important; overflow: visible !important;
+}
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"],
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"] > div,
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlock"] {
+    background: transparent !important;
+    min-height: unset !important;
+    padding: 0 !important;
+}
+/* Primary buttons inside master panel = white (selected RSM/ASM + Enter) */
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-primary"] {
+    background: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border: none !important;
+    font-weight: 700 !important;
+}
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-primary"]:hover {
+    opacity: 0.9 !important;
+}
+/* Yellow admin button — :not(:has(.master-left-marker)) prevents bleeding to outer column */
+[data-testid="stColumn"]:has(.master-admin-inner):not(:has(.master-left-marker)) [data-testid="stBaseButton-secondary"] {
     background: #FFE600 !important;
     color: #1a1a1a !important;
     border: none !important;
-    border-radius: 12px !important;
-    font-size: 0.97rem !important;
     font-weight: 700 !important;
-    min-height: 52px !important;
+    min-height: 48px !important;
 }
-[data-testid="stColumn"]:has(.master-admin-marker) [data-testid="stBaseButton-secondary"]:hover {
+[data-testid="stColumn"]:has(.master-admin-inner):not(:has(.master-left-marker)) [data-testid="stBaseButton-secondary"]:hover {
     background: #f0d800 !important;
     opacity: 1 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-        # ── Card header (matches loader screen style) ──────────────────────
-        st.markdown(f"""
-<div style="background:#F7941D;border-radius:20px;padding:1.8rem 2.5rem;
-    display:flex;align-items:center;gap:1.5rem;margin-top:0.5rem;margin-bottom:0.25rem;
-    font-family:'Inter',system-ui,sans-serif;">
-  {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:80px;height:80px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
-  <div>
-    <div style="font-size:2.6rem;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-0.02em;">Retail AI</div>
-    <div style="font-size:1rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.25rem;">AI Powered Sales Intelligence</div>
+        _ob_names = st.session_state.ob_names or {}
+        _m_role = st.session_state.onboarding_role
+
+        _mc_left, _mc_right = st.columns([55, 45])
+
+        with _mc_left:
+            st.markdown('<div class="master-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
+
+            # Logo + title
+            st.markdown(f"""
+<div style="font-family:'Inter',system-ui,sans-serif;">
+  <div style="display:flex;align-items:center;gap:1.4rem;">
+    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
+    <div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
+    </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-        _ob_names = st.session_state.ob_names or {}
-        _m_role = st.session_state.onboarding_role or "RSM"
+            # Spacer — pushes content to bottom of panel
+            st.markdown('<div style="height:360px;"></div>', unsafe_allow_html=True)
 
-        _, _mid, _ = st.columns([1, 2, 1])
-        with _mid:
-            # Heading
+            # Welcome heading
             st.markdown("""
-<div style="text-align:center;padding:2rem 0 1.6rem;font-family:'Inter',sans-serif;">
-  <div style="font-size:1.9rem;font-weight:800;color:#fff;margin-bottom:0.5rem;">
+<div style="font-family:'Inter',sans-serif;margin-bottom:0.2rem;">
+  <div style="font-size:1.45rem;font-weight:800;color:#fff;margin-bottom:0.35rem;">
     Welcome, you are a master user
   </div>
-  <div style="font-size:0.9rem;color:#888;">
+  <div style="font-size:0.88rem;color:rgba(255,255,255,0.75);">
     Select an identity to enter as, or go straight to settings
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-            # RSM / ASM toggle buttons
-            _rb1, _rb2 = st.columns(2)
+            # RSM / ASM buttons (secondary = dark by default in dark theme)
+            _rb1, _spacer, _rb2 = st.columns([1, 0.04, 1])
             with _rb1:
-                if st.button("RSM", key="master_rsm_btn", type="primary", use_container_width=True):
+                if st.button("RSM", key="master_rsm_btn",
+                            type="primary" if _m_role == "RSM" else "secondary",
+                            use_container_width=True):
                     st.session_state.onboarding_role = "RSM"
                     st.rerun()
             with _rb2:
-                if st.button("ASM", key="master_asm_btn", type="primary", use_container_width=True):
+                if st.button("ASM", key="master_asm_btn",
+                            type="primary" if _m_role == "ASM" else "secondary",
+                            use_container_width=True):
                     st.session_state.onboarding_role = "ASM"
                     st.rerun()
 
-            st.markdown("<div style='height:1.2rem'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
 
             # Name selector
             _name_list = (
@@ -607,7 +840,7 @@ def main():  # noqa: C901
                 st.warning("Name list not loaded. Try Refresh Data.")
             else:
                 st.markdown(
-                    f'<p style="font-size:0.88rem;color:#888;margin:0 0 0.4rem;">Select an {_m_role}s name</p>',
+                    f'<p style="font-size:0.85rem;color:rgba(255,255,255,0.8);font-weight:500;margin:0 0 0.3rem;">Select an {_m_role}s name</p>',
                     unsafe_allow_html=True,
                 )
                 _m_selected = st.multiselect(
@@ -628,14 +861,29 @@ def main():  # noqa: C901
                         st.session_state.onboarding_role     = None
                         st.rerun()
 
-        # Admin yellow button — separate st.columns so :has() CSS won't match _mid
-        st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
-        _, _ac, _ = st.columns([1, 2, 1])
-        with _ac:
-            st.markdown('<div class="master-admin-marker" style="display:none;"></div>', unsafe_allow_html=True)
-            if st.button("upload data / manage access?", key="master_admin",
-                         use_container_width=True):
-                st.switch_page("pages/admin.py")
+            # Yellow admin button — nested column so :has() targets it specifically
+            _admin_col, _ = st.columns([1, 0.001])
+            with _admin_col:
+                st.markdown('<div class="master-admin-inner" style="display:none;"></div>', unsafe_allow_html=True)
+                if st.button("upload data / manage access?", key="master_admin",
+                             use_container_width=True):
+                    st.switch_page("pages/admin.py")
+
+        with _mc_right:
+            st.markdown('<div class="master-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
+            if _master_img_b64:
+                st.markdown(
+                    f'<img src="data:image/png;base64,{_master_img_b64}" '
+                    f'style="width:100%;height:100%;min-height:520px;'
+                    f'object-fit:cover;display:block;">',
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    '<div style="background:#2a2a2a;min-height:520px;width:100%;"></div>',
+                    unsafe_allow_html=True,
+                )
+
         return
 
     # ── CHAT UI ───────────────────────────────────────────────────────────
@@ -656,6 +904,8 @@ def main():  # noqa: C901
             )
         st.session_state.master_identity_set = False
         st.session_state.names_loaded = False
+        st.session_state.pending_roles = []
+        st.session_state.login_error = None
 
     # Determine effective role (Master who chose RSM/ASM uses selected_role)
     _effective_role = st.session_state.get("selected_role") or st.session_state.get("user_role")
