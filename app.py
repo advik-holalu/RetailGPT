@@ -261,7 +261,7 @@ div:has(> .prompts-cols-marker) + div [data-testid="stColumn"] > div {
     100% { width: 95%; }
 }
 .loading-bar-fill {
-    background: #F7941D; height: 100%; border-radius: 3px;
+    background: #ffffff; height: 100%; border-radius: 3px;
     animation: bar-to-95 15s ease-out forwards;
 }
 
@@ -477,63 +477,101 @@ def main():  # noqa: C901
 
         # First load: show loading screen while fetching name lists
         if not st.session_state.names_loaded:
-            _screen = st.empty()
-            with _screen.container():
-                st.markdown(f"""
-<div style="display:flex;flex-direction:column;justify-content:space-between;
-    min-height:88vh;font-family:'Inter',system-ui,sans-serif;">
-  <div style="background:#F7941D;border-radius:20px;padding:2rem 2.5rem;
-      display:flex;align-items:center;gap:1.5rem;margin-top:0.5rem;">
-    {_logo_large}
+            import base64 as _b64l
+            _loader_img_b64 = ""
+            try:
+                with open(os.path.join(os.path.dirname(__file__), "assets", "LOGIN.png"), "rb") as _f:
+                    _loader_img_b64 = _b64l.b64encode(_f.read()).decode()
+            except Exception:
+                pass
+
+            _loader_css = """
+<style>
+[data-testid="stHorizontalBlock"]:has(.loader-left-marker) {
+    gap: 0 !important; border-radius: 20px !important;
+    overflow: hidden !important; box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
+}
+[data-testid="stColumn"]:has(.loader-left-marker),
+[data-testid="stColumn"]:has(.loader-left-marker) > div,
+[data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlock"] {
+    background: #F7941D !important; min-height: calc(100vh - 4rem) !important;
+}
+[data-testid="stColumn"]:has(.loader-left-marker) > div {
+    padding: 2.5rem 3rem 2rem !important;
+}
+[data-testid="stColumn"]:has(.loader-right-marker),
+[data-testid="stColumn"]:has(.loader-right-marker) > div,
+[data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlock"] {
+    background: #2a2a2a !important; min-height: calc(100vh - 4rem) !important;
+    padding: 0 !important; overflow: hidden !important;
+}
+</style>
+"""
+
+            def _render_loader(status_html):
+                st.markdown(_loader_css, unsafe_allow_html=True)
+                _ll, _lr = st.columns([55, 45])
+                with _ll:
+                    st.markdown('<div class="loader-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+<div style="font-family:'Inter',system-ui,sans-serif;">
+  <div style="display:flex;align-items:center;gap:1.4rem;">
+    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
-      <div style="font-size:3rem;font-weight:800;color:#fff;line-height:1.1;">Retail AI</div>
-      <div style="font-size:1.05rem;font-weight:600;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
-    </div>
-  </div>
-  <div style="text-align:center;padding-bottom:3.5rem;">
-    <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:0.9rem;
-        display:flex;align-items:center;justify-content:center;gap:0.6rem;">
-      Loading, please wait
-      <span style="background:#fff500;color:#1a1a1a;border-radius:20px;
-          padding:0.25rem 0.85rem;font-size:0.82rem;font-weight:600;">
-        do not refresh the page, takes upto two minute.
-      </span>
-    </div>
-    <div style="width:80%;margin:0 auto;background:#2A2A2A;border-radius:4px;height:7px;overflow:hidden;">
-      <div class="loading-bar-fill"></div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
     </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
+                    st.markdown('<div style="height:480px;"></div>', unsafe_allow_html=True)
+                    st.markdown(status_html, unsafe_allow_html=True)
+                with _lr:
+                    st.markdown('<div class="loader-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
+                    if _loader_img_b64:
+                        st.markdown(
+                            f'<img src="data:image/png;base64,{_loader_img_b64}" '
+                            f'style="width:100%;height:100%;min-height:calc(100vh - 4rem);object-fit:cover;display:block;">',
+                            unsafe_allow_html=True,
+                        )
+
+            _screen = st.empty()
+            with _screen.container():
+                _render_loader("""
+<div style="font-family:'Inter',sans-serif;">
+  <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:0.75rem;
+      display:flex;align-items:center;gap:0.6rem;">
+    Loading, please wait
+    <span style="background:#FFE600;color:#1a1a1a;border-radius:20px;
+        padding:0.2rem 0.75rem;font-size:0.78rem;font-weight:600;">
+      do not refresh — takes up to 2 min
+    </span>
+  </div>
+  <div style="background:#2A2A2A;border-radius:4px;height:6px;overflow:hidden;">
+    <div class="loading-bar-fill"></div>
+  </div>
+</div>
+""")
 
             st.session_state.ob_names = load_names()
             st.session_state.names_loaded = True
 
             with _screen.container():
-                st.markdown(f"""
-<div style="display:flex;flex-direction:column;justify-content:space-between;
-    min-height:88vh;font-family:'Inter',system-ui,sans-serif;">
-  <div style="background:#F7941D;border-radius:20px;padding:2rem 2.5rem;
-      display:flex;align-items:center;gap:1.5rem;margin-top:0.5rem;">
-    {_logo_large}
-    <div>
-      <div style="font-size:3rem;font-weight:800;color:#fff;line-height:1.1;">Retail AI</div>
-      <div style="font-size:1.05rem;font-weight:600;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
-    </div>
+                _render_loader("""
+<div style="font-family:'Inter',sans-serif;">
+  <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:0.75rem;
+      display:flex;align-items:center;gap:0.6rem;">
+    Ready
+    <span style="background:#4CAF50;color:#fff;border-radius:20px;
+        padding:0.2rem 0.75rem;font-size:0.78rem;font-weight:600;">connected</span>
   </div>
-  <div style="text-align:center;padding-bottom:3.5rem;">
-    <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:0.9rem;
-        display:flex;align-items:center;justify-content:center;gap:0.6rem;">
-      Ready
-      <span style="background:#4CAF50;color:#fff;border-radius:20px;
-          padding:0.25rem 0.85rem;font-size:0.82rem;font-weight:600;">connected</span>
-    </div>
-    <div style="width:80%;margin:0 auto;background:#2A2A2A;border-radius:4px;height:7px;overflow:hidden;">
-      <div style="background:#F7941D;height:100%;width:100%;border-radius:4px;"></div>
-    </div>
+  <div style="background:#2A2A2A;border-radius:4px;height:6px;overflow:hidden;">
+    <div style="background:#fff;height:100%;width:100%;border-radius:4px;"></div>
   </div>
 </div>
-""", unsafe_allow_html=True)
+""")
             _time.sleep(0.6)
             _screen.empty()
 
