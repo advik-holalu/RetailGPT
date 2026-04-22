@@ -375,7 +375,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.role-left-marker) > div,
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important; min-height: 520px !important;
+    background: #F7941D !important; min-height: calc(100vh - 4rem) !important;
 }
 [data-testid="stColumn"]:has(.role-left-marker) > div {
     padding: 2.5rem 3rem 2rem !important;
@@ -384,7 +384,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.role-right-marker) > div,
 [data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important; min-height: 520px !important;
+    background: #2a2a2a !important; min-height: calc(100vh - 4rem) !important;
     padding: 0 !important; overflow: hidden !important;
 }
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stHorizontalBlock"] {
@@ -421,7 +421,7 @@ def main():  # noqa: C901
 </div>
 """, unsafe_allow_html=True)
 
-            st.markdown('<div style="height:240px;"></div>', unsafe_allow_html=True)
+            st.markdown('<div style="height:380px;"></div>', unsafe_allow_html=True)
 
             st.markdown("""
 <div style="font-family:'Inter',sans-serif;margin-bottom:1rem;">
@@ -562,7 +562,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlock"] {
     background: #F7941D !important;
-    min-height: 520px !important;
+    min-height: calc(100vh - 4rem) !important;
 }
 [data-testid="stColumn"]:has(.login-left-marker) > div {
     padding: 2.5rem 3rem 2rem !important;
@@ -573,7 +573,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlock"] {
     background: #2a2a2a !important;
-    min-height: 520px !important;
+    min-height: calc(100vh - 4rem) !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
@@ -726,7 +726,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlock"] {
     background: #F7941D !important;
-    min-height: 520px !important;
+    min-height: calc(100vh - 4rem) !important;
 }
 [data-testid="stColumn"]:has(.master-left-marker) > div {
     padding: 2.5rem 3rem 2rem !important;
@@ -736,7 +736,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlock"] {
     background: #2a2a2a !important;
-    min-height: 520px !important;
+    min-height: calc(100vh - 4rem) !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
