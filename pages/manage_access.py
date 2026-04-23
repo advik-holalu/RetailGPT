@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from page_utils import render_header  # noqa: E402
 
 st.set_page_config(
-    page_title="Retail AI - Manage Access",
+    page_title="RetailAI - Manage Access",
     page_icon=None,
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -79,7 +79,7 @@ button, [data-testid="stBaseButton-primary"], [data-testid="stBaseButton-seconda
 # ---------------------------------------------------------------------------
 if not st.session_state.get("user_email") or st.session_state.get("user_role") != "Master":
     st.error("You don't have access to this page.")
-    if st.button("Back to Retail AI"):
+    if st.button("Back to RetailAI"):
         st.switch_page("app.py")
     st.stop()
 
@@ -88,12 +88,12 @@ if not st.session_state.get("user_email") or st.session_state.get("user_role") !
 # ---------------------------------------------------------------------------
 render_header()
 
-if st.button("Back to Retail AI", key="back_btn"):
+if st.button("Back to RetailAI", key="back_btn"):
     st.switch_page("app.py")
 
 st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 st.markdown("## Manage Access")
-st.markdown("Add, edit, or remove user access to Retail AI.")
+st.markdown("Add, edit, or remove user access to RetailAI.")
 
 from supabase_client import (
     add_approved_user, remove_approved_user, get_all_approved_users,
@@ -302,6 +302,6 @@ st.markdown("</div>", unsafe_allow_html=True)
 # ---------------------------------------------------------------------------
 st.markdown("""
 <div style="text-align:center;color:#444;font-size:0.78rem;padding:1rem 0;">
-Retail AI - Manage Access - Master Only
+RetailAI - Manage Access - Master Only
 </div>
 """, unsafe_allow_html=True)

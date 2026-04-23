@@ -326,7 +326,7 @@ html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; 
 
 /* ── Welcome card ── */
 .welcome-card-inner {
-    padding: 3rem 2rem 2rem;
+    padding: 2rem 2rem 1rem;
     text-align: center;
 }
 .welcome-card-title {
@@ -1092,7 +1092,7 @@ def main():  # noqa: C901
         st.markdown('</div>', unsafe_allow_html=True)  # CLOSE chat-content
 
         # ── Input form ──
-        st.markdown('<div class="chat-input">', unsafe_allow_html=True)
+        st.markdown('<div class="chat-input" style="padding-bottom: 2rem;">', unsafe_allow_html=True)
 
         with st.form(key="chat_form", clear_on_submit=True):
             _in_col, _btn_col = st.columns([10, 1])
@@ -1105,12 +1105,12 @@ def main():  # noqa: C901
             with _btn_col:
                 send_clicked = st.form_submit_button("Send", use_container_width=True)
 
-        st.markdown('</div>', unsafe_allow_html=True)  # CLOSE chat-input
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)  # CLOSE chat-wrapper
 
     # ── Bottom strip ─────────────────────────────────────────────────────
-    st.markdown("<div style='padding-bottom: 2rem;'>", unsafe_allow_html=True)
+    st.markdown("<div style='padding-bottom: 0rem;'>", unsafe_allow_html=True)
 
     _strip_l, _strip_r = st.columns([3, 1], vertical_alignment="center")
 

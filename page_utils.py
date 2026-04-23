@@ -59,7 +59,7 @@ def render_header() -> None:
     <div style="display:flex;align-items:center;gap:1rem;">
         {logo_img}
         <div>
-            <div class="desi-header-title">Retail AI</div>
+            <div class="desi-header-title">RetailAI</div>
             <div class="desi-header-subtitle">AI Powered Sales Intelligence</div>
         </div>
     </div>
