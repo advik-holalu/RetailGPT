@@ -425,16 +425,17 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.role-left-marker) > div,
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important; min-height: calc(100vh - 4rem) !important;
+    background: #F7941D !important; height: 100vh !important;
 }
 [data-testid="stColumn"]:has(.role-left-marker) > div {
-    padding: 2.5rem 3rem 2rem !important;
+    padding: 2rem 3rem !important;
+    box-sizing: border-box !important;
 }
 [data-testid="stColumn"]:has(.role-right-marker),
 [data-testid="stColumn"]:has(.role-right-marker) > div,
 [data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important; min-height: calc(100vh - 4rem) !important;
+    background: #2a2a2a !important; height: 100vh !important;
     padding: 0 !important; overflow: hidden !important;
 }
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stHorizontalBlock"] {
@@ -545,16 +546,17 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.loader-left-marker) > div,
 [data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important; min-height: calc(100vh - 4rem) !important;
+    background: #F7941D !important; height: 100vh !important;
 }
 [data-testid="stColumn"]:has(.loader-left-marker) > div {
-    padding: 2.5rem 3rem 2rem !important;
+    padding: 2rem 3rem !important;
+    box-sizing: border-box !important;
 }
 [data-testid="stColumn"]:has(.loader-right-marker),
 [data-testid="stColumn"]:has(.loader-right-marker) > div,
 [data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important; min-height: calc(100vh - 4rem) !important;
+    background: #2a2a2a !important; height: 100vh !important;
     padding: 0 !important; overflow: hidden !important;
 }
 </style>
@@ -653,7 +655,8 @@ def main():  # noqa: C901
     height: 100%!important;
 }
 [data-testid="stColumn"]:has(.login-left-marker) > div {
-    padding: 2.5rem 3rem 2rem !important;
+    padding: 2rem 3rem !important;
+    box-sizing: border-box !important;
 }
 /* ── Right white panel ── */
 [data-testid="stColumn"]:has(.login-right-marker),
@@ -661,7 +664,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlock"] {
     background: #2a2a2a !important;
-    min-height: calc(100vh - 4rem) !important;
+    height: 100vh !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
@@ -814,17 +817,18 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlock"] {
     background: #F7941D !important;
-    min-height: calc(100vh - 4rem) !important;
+    height: 100vh !important;
 }
 [data-testid="stColumn"]:has(.master-left-marker) > div {
-    padding: 2.5rem 3rem 2rem !important;
+    padding: 2rem 3rem !important;
+    box-sizing: border-box !important;
 }
 [data-testid="stColumn"]:has(.master-right-marker),
 [data-testid="stColumn"]:has(.master-right-marker) > div,
 [data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlock"] {
     background: #2a2a2a !important;
-    min-height: calc(100vh - 4rem) !important;
+    height: 100vh !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
