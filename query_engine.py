@@ -182,16 +182,16 @@ class QueryEngine:
 
     def _apply_user_scope(self, intent: dict, user_scope: dict) -> tuple[dict, set]:
         """
-        FIX 1: Fill in the logged-in user's identity for empty entity fields.
-        Returns (updated_intent, set_of_fields_that_were_filled).
-        Filled fields are skipped entirely by fuzzy matching — their values are
-        exact canonical names from the DB (selected via onboarding multiselect).
+        FIX 1: Always override intent with the logged-in user's identity.
+        user_scope fields are exact canonical names from the DB — they must
+        never go through fuzzy matching regardless of what was extracted from
+        the question text (predefined prompts embed the user's name in text,
+        which would otherwise trigger ambiguous fuzzy matches).
         """
         filled: set = set()
         for key, val in user_scope.items():
-            if not intent.get(key):
-                intent[key] = val
-                filled.add(key)
+            intent[key] = val  # always override, not just when empty
+            filled.add(key)
         return intent, filled
 
     def _build_new_context(self, resolved: dict, old_ctx: dict) -> dict:

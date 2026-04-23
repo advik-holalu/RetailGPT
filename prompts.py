@@ -104,10 +104,18 @@ Key columns:
 7. If data is missing or zero, say so plainly: "No data available for this period."
 
 ## FORMATTING RULES (MANDATORY)
-- Never use emojis in any response. No emoji characters anywhere.
 - Never use em dashes or long dashes. Use a simple hyphen (-) or comma instead.
-- Do not start headings, sections, or bullet points with emoji characters.
 - Keep formatting clean and professional throughout.
+- Use emojis strategically for performance signals only:
+  - Achievement >= 100%: ✅
+  - Achievement 90-99%: ⚠️
+  - Achievement < 90%: 🔴
+  - Strong positive trend: 📈
+  - Declining trend: 📉
+  - Top performer highlight: 🏆
+  - Alert / needs attention: 🔔
+- In tables, add the emoji in the achievement or trend column - do NOT scatter emojis in plain text sentences.
+- Do not add emojis to headings or bullet points unless it is a performance indicator.
 
 ## COMMON QUESTION PATTERNS YOU HANDLE
 1. "What is Ramesh's MTD secondary?" → single SO metrics
@@ -190,18 +198,19 @@ You receive pre-computed sales metrics (already calculated by Python) and must f
 
 FORMATTING RULES:
 1. Rs values: Indian number format - Rs 45,000 | Rs 2.35 L | Rs 1.2 Cr
-2. Percentages: one decimal (e.g., 94.5%). Show achievement status as text: ACHIEVED, NEAR TARGET, or BELOW TARGET.
-3. Use markdown tables for multi-entity data
-4. Lead with the KEY insight first, then show data
-5. Add a brief business interpretation (1-2 sentences) after the data
-6. Keep response concise - max 300 words unless table is large
+2. Percentages: one decimal (e.g., 94.5%). In tables, add emoji in the achievement column:
+   - ✅ if >= 100%, ⚠️ if 90-99%, 🔴 if < 90%
+3. Use markdown tables for multi-entity data. Always include a # or rank column for tables with multiple rows.
+4. Lead with the KEY insight first (one bold sentence), then show the table, then add brief business interpretation.
+5. Add a "Key Insights" section after the table with 2-3 bullet points highlighting what actually matters (who is strong, who needs attention).
+6. Keep response concise - max 350 words unless table is large
 7. Never expose Python errors, stack traces, or column names
 8. If data is empty/zero, say "No data available for this period." - do not guess
-9. Maintain a professional but approachable tone
-10. Reference the time period explicitly (e.g., "For MTD March 2026...")
-11. Never use emojis anywhere in the response.
-12. Never use em dashes or long dashes. Use a simple hyphen (-) or comma instead.
-13. Do not start any heading, section, or bullet with an emoji character.
+9. Maintain a professional but direct tone - these are busy sales managers
+10. Reference the time period explicitly (e.g., "MTD March 2026")
+11. Never use em dashes or long dashes. Use a hyphen (-) or comma instead.
+12. Use 🏆 next to the top performer's name in the table. Use 🔔 if someone needs urgent attention (very low achievement).
+13. In the insights section, use 📈 for positive trends and 📉 for declining ones.
 """
 
 RESPONSE_USER_TEMPLATE = """User question: {question}

@@ -53,7 +53,7 @@ for _k, _v in [
 # ---------------------------------------------------------------------------
 from supabase_client import load_names, get_latest_date_str, get_categories, check_user_access, verify_user_login
 from query_engine import QueryEngine
-from metrics import MONTH_NAMES
+
 
 # ---------------------------------------------------------------------------
 # Engine
@@ -70,125 +70,122 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ── Reset & base ── */
+/* ── Base ── */
 * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
 #MainMenu, footer, header { visibility: hidden; }
 html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; }
 
-/* ── Full-page layout: no max-width, controlled padding ── */
-[data-testid="stMain"],
-[data-testid="stMainBlockContainer"] {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    margin-top: 0 !important;
-    max-width: 100% !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-}
+/* ── Page layout ── */
 .block-container {
     padding-top: 0 !important;
-    padding-bottom: 1rem !important;
-    margin-top: 0 !important;
+    padding-bottom: 2rem !important;
     max-width: 100% !important;
     padding-left: 3.5rem !important;
     padding-right: 3.5rem !important;
-    /* Hard reset — prevents onboarding CSS leaking into chat */
+    /* Prevent onboarding CSS leaking into chat */
     position: static !important;
     top: auto !important;
     left: auto !important;
     transform: none !important;
 }
 
-/* ── All buttons: rounded corners ── */
-button,
-[data-testid="stBaseButton-primary"],
-[data-testid="stBaseButton-secondary"],
-[data-testid="stFormSubmitButton"] > button {
-    border-radius: 10px !important;
-    min-height: 42px !important;
+/* ── Toolbar pills (owned HTML) ── */
+.user-badge-pill {
+    background: #F7941D;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
 }
-
-/* ── Primary buttons (orange) ── */
-[data-testid="stBaseButton-primary"],
-[data-testid="stFormSubmitButton"] > button {
-    background: #F7941D !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    font-weight: 600 !important;
-    transition: opacity 0.18s !important;
-}
-[data-testid="stBaseButton-primary"]:hover,
-[data-testid="stFormSubmitButton"] > button:hover { opacity: 0.88 !important; }
-
-/* ── Secondary buttons (toolbar) ── */
-[data-testid="stBaseButton-secondary"] {
-    font-size: 0.84rem !important;
-}
-
-/* ── Suggested prompt buttons ── */
-.prompt-btn-wrap [data-testid="stBaseButton-secondary"] {
-    border-left: 3px solid #F7941D !important;
-    border-radius: 10px !important;
-    text-align: left !important;
-    padding: 0.6rem 0.9rem !important;
-    font-size: 0.88rem !important;
-    font-weight: 400 !important;
-    margin-bottom: 0.35rem !important;
-    width: 100% !important;
-    transition: background 0.15s, color 0.15s !important;
-}
-.prompt-btn-wrap [data-testid="stBaseButton-secondary"]:hover {
-    background: #F7941D !important;
-    color: #FFFFFF !important;
-    border-color: #F7941D !important;
-}
-
-/* ── Text input ── */
-.stTextInput label { display: none !important; }
-.stTextInput > div > div > input {
-    border-radius: 10px !important;
-    font-size: 0.95rem !important;
-    padding: 0.6rem 1rem !important;
-}
-
-/* ── Category filter multiselect ── */
-[data-testid="stMultiSelect"] > div { border-radius: 8px !important; }
-
-/* ── Status bar ── */
-.status-bar {
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 0.45rem 1rem;
+.toolbar-status {
+    background: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
     font-size: 0.82rem;
-    margin-bottom: 0.6rem;
-    background: #111;
+    display: block;
+}
+/* ── Category filter label ── */
+[data-testid="stMultiSelect"][data-key="cat_filter"] label {
+    color: #F7941D !important;
+    font-weight: 600 !important;
+    font-size: 0.86rem !important;
 }
 .status-ok   { color: #4CAF50; }
 .status-warn { color: #F7941D; }
 
-/* ── Suggested prompts section label ── */
-.prompts-section-label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin: 0.5rem 0 0.75rem;
-    padding-bottom: 0.4rem;
-    border-bottom: 2px solid #F7941D;
-    color: #FFFFFF;
-}
-.prompt-col-header {
-    color: #F7941D;
-    font-size: 0.82rem;
-    font-weight: 600;
-    margin: 0 0 0.6rem;
+/* ── Switch user button — yellow, scoped ── */
+[data-testid="stColumn"]:has(.switch-user-marker) button {
+    background: #E6FF00 !important;
+    color: #1a1a1a !important;
+    border: none !important;
+    font-weight: 700 !important;
 }
 
-/* ── Each prompts column as a card ── */
-div:has(> .prompts-cols-marker) + div [data-testid="stColumn"] > div {
-    background: #1A1A1A !important;
-    border: 1px solid #2A2A2A !important;
-    border-radius: 12px !important;
-    padding: 16px 16px 10px !important;
-    height: 100% !important;
+/* ── Suggested prompts ── */
+.prompt-card-title {
+    background: #F7941D;
+    color: #fff;
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+.prompt-group-badge-sales {
+    display: block;
+    background: #954fc0;
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    text-align: center;
+}
+.prompt-group-badge-prod {
+    display: block;
+    background: #2E7D32;
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    text-align: center;
+}
+/* ── Prompt buttons: sales column (purple) ── */
+[data-testid="stColumn"]:has(.prompt-group-badge-sales) button {
+    text-align: left !important;
+    border-left: 3px solid #954fc0 !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    transition: background 0.15s, color 0.15s !important;
+}
+[data-testid="stColumn"]:has(.prompt-group-badge-sales) button:hover {
+    background: rgba(149, 79, 192, 0.18) !important;
+    border-left-color: #b06dd4 !important;
+    color: #ffffff !important;
+}
+
+/* ── Prompt buttons: productivity column (green) ── */
+[data-testid="stColumn"]:has(.prompt-group-badge-prod) button {
+    text-align: left !important;
+    border-left: 3px solid #2E7D32 !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    transition: background 0.15s, color 0.15s !important;
+}
+[data-testid="stColumn"]:has(.prompt-group-badge-prod) button:hover {
+    background: rgba(46, 125, 50, 0.18) !important;
+    border-left-color: #43a047 !important;
+    color: #ffffff !important;
 }
 
 /* ── Chat bubbles ── */
@@ -206,15 +203,40 @@ div:has(> .prompts-cols-marker) + div [data-testid="stColumn"] > div {
     border-radius: 16px 16px 16px 4px;
     max-width: 82%; font-size: 0.93rem; line-height: 1.7;
 }
-.bubble-bot table {
-    border-collapse: collapse; margin: 0.6rem 0;
-    font-size: 0.85rem; width: 100%;
-    display: block; overflow-x: auto; -webkit-overflow-scrolling: touch;
+.bubble-bot .table-wrapper {
+    border-radius: 12px;
+    overflow: hidden;
+    overflow-x: auto;
+    margin: 0.9rem 0;
+    border: 1px solid #333;
+    -webkit-overflow-scrolling: touch;
 }
-.bubble-bot table th { background: #2A2A2A; padding: 0.45rem 0.8rem; text-align: left; color: #AAAAAA; font-weight: 600; border-bottom: 1px solid #333; white-space: nowrap; }
-.bubble-bot table td { padding: 0.35rem 0.8rem; border-bottom: 1px solid #222; color: #EEEEEE; white-space: nowrap; }
+.bubble-bot table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.84rem;
+}
+.bubble-bot table th {
+    background: #F7941D;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+.bubble-bot table td {
+    padding: 0.42rem 1rem;
+    border-bottom: 1px solid #252525;
+    color: #EEEEEE;
+    white-space: nowrap;
+}
+.bubble-bot table tr:nth-child(even) td { background: #1C1C1C; }
+.bubble-bot table tr:nth-child(odd) td  { background: #161616; }
 .bubble-bot table tr:last-child td { border-bottom: none; }
-.bubble-bot table tr:hover td { background: #222; }
+.bubble-bot table tr:hover td { background: #2A2A2A !important; }
 
 /* ── Loading dots ── */
 @keyframes pulse-dot {
@@ -229,28 +251,47 @@ div:has(> .prompts-cols-marker) + div [data-testid="stColumn"] > div {
 .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
 .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
 
-/* ── Welcome box ── */
-.welcome-box { text-align: center; padding: 1rem 1rem 0.5rem; }
-.welcome-box h2 { font-size: 1.3rem; margin-bottom: 0.3rem; font-weight: 600; }
-
-/* ── Amber info box below input ── */
-.info-box-amber {
-    background: #2A1F00;
-    border: 1px solid #F7941D;
-    border-radius: 10px;
-    padding: 0.5rem 1rem;
-    color: #F7941D;
-    font-size: 0.8rem;
+/* ── Welcome card ── */
+.welcome-card-inner {
+    padding: 3rem 2rem 2rem;
     text-align: center;
-    margin: 0.35rem 0 0.5rem;
+}
+.welcome-card-title {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin-bottom: 0.5rem;
+}
+.welcome-card-sub {
+    font-size: 0.9rem;
+    color: #888888;
 }
 
-/* ── Input area wrapper (sticky) ── */
-.input-area {
-    position: sticky;
-    bottom: 0;
-    padding: 0.5rem 0 0;
-    z-index: 100;
+/* Reset chat button — orange */
+[data-testid="stColumn"]:has(.reset-chat-marker) button {
+    background: #F7941D !important;
+    color: #fff !important;
+    border: none !important;
+    font-weight: 600 !important;
+}
+
+/* ── Send button — orange ── */
+[data-testid="stFormSubmitButton"] > button {
+    background: #F7941D !important;
+    color: #fff !important;
+    border: none !important;
+    font-weight: 700 !important;
+}
+[data-testid="stFormSubmitButton"] > button:hover {
+    background: #e8820a !important;
+    color: #fff !important;
+}
+
+/* ── Remove form's own border/padding so it blends into parent container ── */
+[data-testid="stForm"] {
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
 }
 
 /* ── Loading bar (onboarding) ── */
@@ -265,61 +306,12 @@ div:has(> .prompts-cols-marker) + div [data-testid="stColumn"] > div {
     animation: bar-to-95 15s ease-out forwards;
 }
 
-/* ── Sidebar toggle ── */
-[data-testid="collapsedControl"] { display: flex !important; visibility: visible !important; opacity: 1 !important; }
-
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: #F7941D; }
 
-/* ── Toolbar gap tighten ── */
-[data-testid="stHorizontalBlock"] { gap: 0.5rem !important; }
-
-/* ═══════════════════════════════════
-   RESPONSIVE — Tablet (≤ 900px)
-═══════════════════════════════════ */
-@media (max-width: 900px) {
-    .block-container { padding-left: 1.2rem !important; padding-right: 1.2rem !important; }
-    .bubble-user { max-width: 82% !important; }
-    .bubble-bot  { max-width: 92% !important; }
-    [data-testid="stBaseButton-secondary"] { font-size: 0.78rem !important; padding: 0.4rem 0.5rem !important; }
-}
-
-/* ═══════════════════════════════════
-   RESPONSIVE — Mobile (≤ 640px)
-═══════════════════════════════════ */
-@media (max-width: 640px) {
-    .block-container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
-    .bubble-user, .bubble-bot { max-width: 96% !important; font-size: 0.88rem !important; }
-    .prompts-section-label { font-size: 0.88rem; }
-    .prompt-btn-wrap [data-testid="stBaseButton-secondary"] { font-size: 0.84rem !important; padding: 0.55rem 0.75rem !important; }
-    /* Stack toolbar buttons on mobile */
-    .desi-header { padding: 16px 16px !important; }
-    .desi-header-title { font-size: 1.4rem !important; }
-    .info-box-amber { font-size: 0.76rem !important; }
-    .bubble-bot table { font-size: 0.78rem !important; }
-    .bubble-bot table th, .bubble-bot table td { padding: 0.3rem 0.5rem !important; }
-}
-            
-/* Default (unselected) buttons — dark like dropdown */
-[data-testid="stColumn"]:has(.master-left-marker) 
-[data-testid="stBaseButton-secondary"] {
-    background: #2A2A2A !important;
-    color: #FFFFFF !important;
-    border: 1px solid #2A2A2A !important;
-}
-
-/* Selected button — white */
-[data-testid="stColumn"]:has(.master-left-marker) 
-[data-testid="stBaseButton-primary"] {
-    background: #FFFFFF !important;
-    color: #1a1a1a !important;
-    border: none !important;
-    font-weight: 700 !important;
-}
-
-/* Restore red chips in multiselect */
+/* ── Multiselect chip color ── */
 [data-testid="stMultiSelect"] span[data-baseweb="tag"] {
     background: #FF4B4B !important;
     color: #FFFFFF !important;
@@ -327,11 +319,25 @@ div:has(> .prompts-cols-marker) + div [data-testid="stColumn"] > div {
     font-weight: 500 !important;
 }
 
-/* Optional: better hover */
-[data-testid="stColumn"]:has(.master-left-marker) 
-[data-testid="stBaseButton-secondary"]:hover {
-    background: #333333 !important;
-    border-color: #333333 !important;
+/* ═══════════════════════════════════
+   RESPONSIVE — Tablet (≤ 900px)
+═══════════════════════════════════ */
+@media (max-width: 900px) {
+    .block-container { padding-left: 1.2rem !important; padding-right: 1.2rem !important; }
+    .bubble-user { max-width: 82%; }
+    .bubble-bot  { max-width: 92%; }
+}
+
+/* ═══════════════════════════════════
+   RESPONSIVE — Mobile (≤ 640px)
+═══════════════════════════════════ */
+@media (max-width: 640px) {
+    .block-container { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+    .bubble-user, .bubble-bot { max-width: 96%; font-size: 0.88rem; }
+    .prompts-section-label { font-size: 0.88rem; }
+    .info-box-amber { font-size: 0.76rem; }
+    .bubble-bot table { font-size: 0.78rem; }
+    .bubble-bot table th, .bubble-bot table td { padding: 0.3rem 0.5rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -600,7 +606,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlock"] {
     background: #F7941D !important;
-    min-height: calc(100vh - 4rem) !important;
+    min-height: 100vh !important;
 }
 [data-testid="stColumn"]:has(.login-left-marker) > div {
     padding: 2.5rem 3rem 2rem !important;
@@ -928,9 +934,6 @@ def main():  # noqa: C901
 
     render_header()
 
-    # ── Toolbar ──────────────────────────────────────────────────────────
-    t1, t2, t3, t4 = st.columns([5, 2, 2, 2])
-
     def _reset_session():
         for _k in ("user_email","user_role","user_name","user_names","selected_role",
                    "onboarding_role","messages","session_context","selected_categories",
@@ -948,36 +951,6 @@ def main():  # noqa: C901
     # Determine effective role (Master who chose RSM/ASM uses selected_role)
     _effective_role = st.session_state.get("selected_role") or st.session_state.get("user_role")
 
-    with t1:
-        _names = st.session_state.user_names or []
-        if len(_names) == 1:
-            _badge = f"{_names[0]} ({_effective_role})"
-        elif len(_names) == 2:
-            _badge = f"{_names[0]}, {_names[1]} ({_effective_role})"
-        else:
-            _badge = f"{_names[0]} +{len(_names)-1} others ({_effective_role})"
-        if st.button(_badge, key="badge_switch", help="Click to switch user"):
-            _reset_session()
-            st.rerun()
-
-    with t2:
-        if st.button("New Conversation", use_container_width=True):
-            st.session_state.messages        = []
-            st.session_state.session_context = {}
-            st.rerun()
-
-    with t3:
-        if st.button("Refresh Data", use_container_width=True):
-            get_engine.clear()
-            load_names.clear()
-            get_latest_date_str.clear()
-            st.rerun()
-
-    with t4:
-        if st.button("Switch User", use_container_width=True):
-            _reset_session()
-            st.rerun()
-
     # ── Engine ──────────────────────────────────────────────────────────
     try:
         engine  = get_engine()
@@ -987,34 +960,53 @@ def main():  # noqa: C901
         data_ok = False
         st.error(f"Could not connect to database: {e}")
 
-    # ── Status bar ──────────────────────────────────────────────────────
-    if data_ok:
-        latest     = engine._latest_date
-        month_name = MONTH_NAMES.get(latest.month, "")
-        st.markdown(
-            f'<div class="status-bar">'
-            f'<span class="status-ok">&#9679;</span> Ready'
-            f' &nbsp;|&nbsp; Latest date: <b>{latest.strftime("%d %b %Y")}</b>'
-            f' &nbsp;|&nbsp; MTD reference: <b>{month_name} {latest.year}</b>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+    # ── Toolbar row ──────────────────────────────────────────────────────
+    _names = st.session_state.user_names or []
+    if len(_names) == 1:
+        _badge_text = f"Showing data for {_names[0]}"
+    elif len(_names) > 1:
+        _badge_text = f"Showing data for {_names[0]} +{len(_names)-1}"
     else:
-        st.markdown(
-            '<div class="status-bar"><span class="status-warn">&#9679;</span> '
-            'No data found. Upload files via the Upload page.</div>',
-            unsafe_allow_html=True,
-        )
+        _badge_text = f"Showing data for {_effective_role}"
 
-    # ── Category filter ─────────────────────────────────────────────────
+    _t1, _t2 = st.columns([6, 5], vertical_alignment="center")
+
+    with _t1:
+        _badge_c, _switch_c = st.columns([3, 1], vertical_alignment="center")
+        with _badge_c:
+            st.markdown(f'<div class="user-badge-pill">{_badge_text}</div>', unsafe_allow_html=True)
+        with _switch_c:
+            st.markdown('<div class="switch-user-marker" style="display:none;"></div>', unsafe_allow_html=True)
+            if st.button("Switch user?", key="switch_user_btn", use_container_width=True):
+                _reset_session()
+                st.rerun()
+
+    with _t2:
+        if data_ok:
+            _latest = engine._latest_date
+            st.markdown(
+                f'<div class="toolbar-status">'
+                f'<span class="status-ok">&#9679;</span>&nbsp; Ready'
+                f' &nbsp;|&nbsp; Latest date : <b>{_latest.strftime("%d %B %Y")}</b>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<div class="toolbar-status"><span class="status-warn">&#9679;</span>'
+                '&nbsp; No data found.</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Category filter row ─────────────────────────────────────────────
     _all_cats = get_categories()
     if _all_cats:
         st.session_state.selected_categories = st.multiselect(
-            label="Filter by Category (optional)",
+            label="Filter category if needed",
             options=_all_cats,
             default=st.session_state.selected_categories,
             key="cat_filter",
-            placeholder="All categories",
+            placeholder="Choose a category (Default – all categories)",
         )
 
     # ── Suggested prompts (ABOVE chat history) ───────────────────────────
@@ -1053,28 +1045,23 @@ def main():  # noqa: C901
          f"Give me MTD TC, PC and UPC breakdown by each {_sub} for {_scope}."),
     ]
 
-    st.markdown('<div class="prompts-section-label">Suggested Prompts</div>', unsafe_allow_html=True)
-    st.markdown('<div class="prompts-cols-marker" style="display:none;"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="prompt-card-title">Predefined prompts for ease of use</div>', unsafe_allow_html=True)
 
-    _left_col, _right_col = st.columns(2)
+    _pc_left, _pc_right = st.columns(2)
 
-    with _left_col:
-        st.markdown('<p class="prompt-col-header">Sales</p>', unsafe_allow_html=True)
-        st.markdown('<div class="prompt-btn-wrap">', unsafe_allow_html=True)
+    with _pc_left:
+        st.markdown('<span class="prompt-group-badge-sales">Sales</span>', unsafe_allow_html=True)
         for _label, _query in _sales_btns:
             if st.button(_label, key=f"qs_{_label}", use_container_width=True):
                 st.session_state.starter_clicked = (_label, _query)
                 st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    with _right_col:
-        st.markdown('<p class="prompt-col-header">Productivity</p>', unsafe_allow_html=True)
-        st.markdown('<div class="prompt-btn-wrap">', unsafe_allow_html=True)
+    with _pc_right:
+        st.markdown('<span class="prompt-group-badge-prod">Productivity</span>', unsafe_allow_html=True)
         for _label, _query in _prod_btns:
             if st.button(_label, key=f"qp_{_label}", use_container_width=True):
                 st.session_state.starter_clicked = (_label, _query)
                 st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     # Starter prompt capture — runs after buttons are rendered
     if st.session_state.starter_clicked:
@@ -1101,79 +1088,81 @@ def main():  # noqa: C901
         })
         _is_processing = True
 
-    # ── Chat history ─────────────────────────────────────────────────────
-    if not st.session_state.messages and not _is_processing:
-        _wnames = st.session_state.get("user_names", [])
-        _scope_line = (
-            f"Showing data for <b>{_wnames[0]}</b>." if len(_wnames) == 1 else
-            f"Showing data for <b>{', '.join(_wnames)}</b>." if len(_wnames) > 1 else
-            "Ask me anything about your sales data."
-        )
-        st.markdown(
-            f'<div class="welcome-box"><h2>How can I help you today?</h2>'
-            f'<p>{_scope_line}</p></div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        for msg in st.session_state.messages:
-            if msg["role"] == "user":
-                # Show the short display label (button text) if available,
-                # otherwise fall back to the full query text
-                _display_text = msg.get("display") or msg["content"]
-                st.markdown(
-                    f'<div class="msg-user"><div class="bubble-user">'
-                    f'{_display_text}</div></div>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                import markdown as _md
-                try:
-                    html_content = _md.markdown(
-                        msg["content"], extensions=["tables", "nl2br"]
-                    )
-                except Exception:
-                    html_content = msg["content"].replace("\n", "<br>")
-                st.markdown(
-                    f'<div class="msg-bot"><div class="bubble-bot">'
-                    f'{html_content}</div></div>',
-                    unsafe_allow_html=True,
-                )
-
-    # Loading bubble while processing
-    if _is_processing:
-        st.markdown(
-            '<div class="msg-bot"><div class="bubble-bot">'
-            '<div class="loading-dots">'
-            '<span></span><span></span><span></span>'
-            '</div></div></div>',
-            unsafe_allow_html=True,
-        )
-
-    # Spacer so last message isn't hidden behind sticky input
-    st.markdown('<div style="height:70px;"></div>', unsafe_allow_html=True)
-
-    # ── Sticky input area ────────────────────────────────────────────────
-    st.markdown('<div class="input-area">', unsafe_allow_html=True)
-
-    with st.form(key="chat_form", clear_on_submit=True):
-        _in_col, _btn_col = st.columns([10, 1])
-        with _in_col:
-            user_input = st.text_input(
-                label="",
-                placeholder="Ask a sales question...",
-                label_visibility="collapsed",
+    # ── Chat card ────────────────────────────────────────────────────────
+    st.markdown('<div id="chat-scroll-anchor"></div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        if not st.session_state.messages and not _is_processing:
+            st.markdown(
+                '<div class="welcome-card-inner">'
+                '<div class="welcome-card-title">Ask me anything about your sales data</div>'
+                '<div class="welcome-card-sub">Explore performance, trends, and team insights</div>'
+                '</div>',
+                unsafe_allow_html=True,
             )
-        with _btn_col:
-            send_clicked = st.form_submit_button("Send", use_container_width=True)
+        else:
+            import markdown as _md
+            for msg in st.session_state.messages:
+                if msg["role"] == "user":
+                    _display_text = msg.get("display") or msg["content"]
+                    st.markdown(
+                        f'<div class="msg-user"><div class="bubble-user">{_display_text}</div></div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    try:
+                        html_content = _md.markdown(msg["content"], extensions=["tables", "nl2br"])
+                    except Exception:
+                        html_content = msg["content"].replace("\n", "<br>")
+                    # Wrap tables for rounded corners + horizontal scroll
+                    html_content = html_content.replace(
+                        "<table>", '<div class="table-wrapper"><table>'
+                    ).replace("</table>", "</table></div>")
+                    st.markdown(
+                        f'<div class="msg-bot"><div class="bubble-bot">{html_content}</div></div>',
+                        unsafe_allow_html=True,
+                    )
 
-    st.markdown(
-        '<div class="info-box-amber">'
-        'Responses may take a few seconds as data is fetched live for each question'
-        '</div>',
-        unsafe_allow_html=True,
-    )
+        if _is_processing:
+            st.markdown(
+                '<div class="msg-bot"><div class="bubble-bot"><div class="loading-dots">'
+                '<span></span><span></span><span></span>'
+                '</div></div></div>',
+                unsafe_allow_html=True,
+            )
+            import streamlit.components.v1 as _components
+            _components.html("""
+<script>
+(function() {
+    var el = window.parent.document.getElementById('chat-scroll-anchor');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+})();
+</script>
+""", height=0)
 
-    st.markdown('</div>', unsafe_allow_html=True)  # close .input-area
+        # ── Input form inside the same container ──
+        with st.form(key="chat_form", clear_on_submit=True):
+            _in_col, _btn_col = st.columns([10, 1])
+            with _in_col:
+                user_input = st.text_input(
+                    label="",
+                    placeholder="How can I help you today?",
+                    label_visibility="collapsed",
+                )
+            with _btn_col:
+                send_clicked = st.form_submit_button("Send", use_container_width=True)
+
+    # ── Bottom strip ─────────────────────────────────────────────────────
+    _strip_l, _strip_r = st.columns([3, 1], vertical_alignment="center")
+    with _strip_l:
+        st.caption("Data is fetched live - responses may take a few seconds")
+    with _strip_r:
+        st.markdown('<div class="reset-chat-marker" style="display:none;"></div>', unsafe_allow_html=True)
+        if st.button("Start a new conversation?", key="reset_chat_btn", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.session_context = {}
+            st.session_state.pending_question = None
+            st.session_state.pending_display = None
+            st.rerun()
 
     # Form submission — typed text: display = content
     if send_clicked and user_input.strip():

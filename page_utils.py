@@ -20,62 +20,48 @@ _LOGO_B64 = get_logo_base64()
 
 
 def render_header() -> None:
-    """Render the full-width orange DESi Field AI header."""
+    """Render the orange Retail AI header card."""
     import streamlit as st
     logo_img = (
         f'<img src="data:image/png;base64,{_LOGO_B64}" '
-        f'style="height:60px;width:60px;border-radius:50%;object-fit:cover;">'
+        f'style="height:56px;width:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
         if _LOGO_B64 else ""
     )
     st.markdown(f"""
 <style>
-[data-testid="stAppViewContainer"] > .main > div:first-child,
-[data-testid="stMain"],
-[data-testid="stMainBlockContainer"],
-.main .block-container,
-section[data-testid="stMain"] > div:first-child {{
-    padding-top: 0 !important;
-    margin-top: 0 !important;
-}}
 [data-testid="stDecoration"] {{ display: none !important; }}
 .desi-header {{
-    background-color: #F7941D;
-    padding: 20px 3.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-left: -3.5rem;
-    margin-right: -3.5rem;
-    margin-top: 0;
-    margin-bottom: 1.2rem;
+    background: linear-gradient(135deg, #F7941D 0%, #e8820a 100%);
+    padding: 1.6rem 2rem;
+    border-radius: 14px;
+    margin-bottom: 0.9rem;
     font-family: 'Inter', system-ui, sans-serif;
-    border-radius: 0 0 16px 16px;
 }}
 .desi-header-title {{
     font-size: 1.9rem;
     font-weight: 800;
-    color: white;
-    line-height: 1.2;
+    color: #fff;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
 }}
 .desi-header-subtitle {{
-    font-size: 0.9rem;
-    color: rgba(255,255,255,0.85);
-    margin-top: 3px;
-}}
-@media (max-width: 900px) {{
-    .desi-header {{ padding: 18px 1.2rem; margin-left: -1.2rem; margin-right: -1.2rem; }}
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.8);
+    margin-top: 2px;
+    font-weight: 400;
 }}
 @media (max-width: 640px) {{
-    .desi-header {{ padding: 14px 0.75rem; margin-left: -0.75rem; margin-right: -0.75rem; }}
-    .desi-header-title {{ font-size: 1.4rem; }}
-    .desi-header-subtitle {{ font-size: 0.8rem; }}
+    .desi-header {{ padding: 0.75rem 1rem; }}
+    .desi-header-title {{ font-size: 1.3rem; }}
 }}
 </style>
 <div class="desi-header">
-    <div>
-        <div class="desi-header-title">Retail AI</div>
-        <div class="desi-header-subtitle">AI-Powered Sales Intelligence</div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+        {logo_img}
+        <div>
+            <div class="desi-header-title">Retail AI</div>
+            <div class="desi-header-subtitle">AI Powered Sales Intelligence</div>
+        </div>
     </div>
-    {logo_img}
 </div>
 """, unsafe_allow_html=True)
