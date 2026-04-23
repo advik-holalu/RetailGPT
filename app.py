@@ -1,6 +1,6 @@
 """
 app.py
-DESi Field AI — Main Streamlit chat interface.
+RetailAI — Main Streamlit chat interface.
 Open to all users (ASMs and RSMs). No login required.
 """
 
@@ -17,7 +17,7 @@ load_dotenv()
 # Page config
 # ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Retail AI",
+    page_title="RetailAI",
     page_icon="assets/godesi_logo.png" if os.path.exists("assets/godesi_logo.png") else None,
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -524,7 +524,7 @@ def main():  # noqa: C901
   <div style="display:flex;align-items:center;gap:1.4rem;">
     {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
-      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">RetailAI</div>
       <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
     </div>
   </div>
@@ -577,7 +577,7 @@ def main():  # noqa: C901
   <div style="display:flex;align-items:center;gap:1.4rem;">
     {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
-      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">RetailAI</div>
       <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
     </div>
   </div>
@@ -690,7 +690,7 @@ def main():  # noqa: C901
   <div style="display:flex;align-items:center;gap:1.4rem;">
     {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
-      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1.05;letter-spacing:-0.03em;">Retail AI</div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1.05;letter-spacing:-0.03em;">RetailAI</div>
       <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.85);margin-top:0.3rem;letter-spacing:0.01em;">
         AI Powered Sales Intelligence
       </div>
@@ -764,7 +764,7 @@ def main():  # noqa: C901
 
         st.markdown("""
 <style>
-/* Master: Enter Retail AI button — white primary */
+/* Master: Enter RetailAI button — white primary */
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-primary"] {
     background: #FFFFFF !important; color: #1a1a1a !important;
     border: none !important; font-weight: 700 !important;
@@ -836,7 +836,7 @@ def main():  # noqa: C901
             )
 
             # Enter button — always visible, enabled only after names picked
-            if st.button("Enter Retail AI →", key="master_enter",
+            if st.button("Enter RetailAI →", key="master_enter",
                          type="primary", use_container_width=True,
                          disabled=not _m_selected):
                 st.session_state.user_names          = _m_selected
@@ -858,7 +858,7 @@ def main():  # noqa: C901
   <div style="display:flex;align-items:center;gap:1.4rem;">
     {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
-      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">RetailAI</div>
       <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
     </div>
   </div>
@@ -1110,9 +1110,13 @@ def main():  # noqa: C901
     st.markdown('</div>', unsafe_allow_html=True)  # CLOSE chat-wrapper
 
     # ── Bottom strip ─────────────────────────────────────────────────────
+    st.markdown("<div style='padding-bottom: 2rem;'>", unsafe_allow_html=True)
+
     _strip_l, _strip_r = st.columns([3, 1], vertical_alignment="center")
+
     with _strip_l:
         st.caption("Data is fetched live - responses may take a few seconds")
+
     with _strip_r:
         st.markdown('<div class="reset-chat-marker" style="display:none;"></div>', unsafe_allow_html=True)
         if st.button("Start a new conversation?", key="reset_chat_btn", use_container_width=True):
@@ -1121,6 +1125,8 @@ def main():  # noqa: C901
             st.session_state.pending_question = None
             st.session_state.pending_display = None
             st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # Form submission — typed text: display = content
     if send_clicked and user_input.strip():
