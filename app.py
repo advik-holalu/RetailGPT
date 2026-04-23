@@ -44,6 +44,7 @@ for _k, _v in [
     ("names_loaded",        False),
     ("pending_roles",       []),     # list of user dicts when multiple roles found
     ("login_error",         None),   # persisted error message across reruns
+    ("_transitioning",      False),  # show loading screen between onboarding → chat
 ]:
     if _k not in st.session_state:
         st.session_state[_k] = _v
@@ -431,6 +432,33 @@ def main():  # noqa: C901
         if _LOGO_B64 else ""
     )
 
+    # ── TRANSITION LOADING SCREEN ────────────────────────────────────────
+    if st.session_state._transitioning:
+        st.session_state._transitioning = False
+        _tl, _tr = st.columns([55, 45])
+        with _tl:
+            st.markdown('<div class="loader-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
+            st.markdown("""
+<div style="font-family:'Inter',sans-serif;">
+  <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:0.75rem;
+      display:flex;align-items:center;gap:0.6rem;">
+    Loading
+    <span style="background:#fff;color:#1a1a1a;border-radius:20px;
+        padding:0.2rem 0.75rem;font-size:0.78rem;font-weight:600;">
+      just a moment...
+    </span>
+  </div>
+  <div style="background:rgba(255,255,255,0.25);border-radius:4px;height:6px;overflow:hidden;">
+    <div class="loading-bar-fill"></div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+        with _tr:
+            st.markdown('<div class="loader-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
+        _time.sleep(0.35)
+        st.rerun()
+        return
+
     # ── ROLE SELECTION SCREEN (dual-role users) ───────────────────────────
     if st.session_state.pending_roles and not st.session_state.user_email:
         _pr = st.session_state.pending_roles
@@ -487,6 +515,7 @@ def main():  # noqa: C901
                 if _pr_user["role"] in ("RSM", "ASM"):
                     st.session_state.user_names    = [_pr_user["name"]]
                     st.session_state.selected_role = _pr_user["role"]
+                st.session_state._transitioning = True
                 st.rerun()
 
             # Logo + title (bottom)
@@ -700,6 +729,7 @@ def main():  # noqa: C901
                             if _user["role"] in ("RSM", "ASM"):
                                 st.session_state.user_names    = [_user["name"]]
                                 st.session_state.selected_role = _user["role"]
+                            st.session_state._transitioning = True
                             st.rerun()
                         else:
                             st.session_state.pending_roles = _matched
@@ -734,19 +764,32 @@ def main():  # noqa: C901
 
         st.markdown("""
 <style>
-/* Master: screen-specific button styles only */
+/* Master: Enter Retail AI button — white primary */
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-primary"] {
     background: #FFFFFF !important; color: #1a1a1a !important;
     border: none !important; font-weight: 700 !important;
 }
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-primary"]:hover {
-    opacity: 0.9 !important;
+/* RSM/ASM selected — black (inside stHorizontalBlock, overrides white above) */
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stHorizontalBlock"] [data-testid="stBaseButton-primary"] {
+    background: #000000 !important; color: #fff !important;
 }
-[data-testid="stColumn"]:has(.master-admin-inner):not(:has(.master-left-marker)) [data-testid="stBaseButton-secondary"] {
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stHorizontalBlock"] [data-testid="stBaseButton-primary"]:hover {
+    opacity: 0.85 !important;
+}
+/* RSM/ASM unselected — dark (inside stHorizontalBlock) */
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stHorizontalBlock"] [data-testid="stBaseButton-secondary"] {
+    background: #2a2a2a !important; color: #fff !important;
+    border: none !important; font-weight: 700 !important;
+}
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stHorizontalBlock"] [data-testid="stBaseButton-secondary"]:hover {
+    background: #3a3a3a !important;
+}
+/* Upload button — yellow secondary (not inside stHorizontalBlock) */
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-secondary"] {
     background: #FFE600 !important; color: #1a1a1a !important;
-    border: none !important; font-weight: 700 !important; min-height: 48px !important;
+    border: none !important; font-weight: 700 !important;
 }
-[data-testid="stColumn"]:has(.master-admin-inner):not(:has(.master-left-marker)) [data-testid="stBaseButton-secondary"]:hover {
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-secondary"]:hover {
     background: #f0d800 !important;
 }
 </style>
@@ -760,19 +803,10 @@ def main():  # noqa: C901
         with _mc_left:
             st.markdown('<div class="master-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
 
-            # Welcome heading
-            st.markdown("""
-<div style="font-family:'Inter',sans-serif;margin-bottom:0.2rem;">
-  <div style="font-size:1.45rem;font-weight:800;color:#fff;margin-bottom:0.35rem;">
-    Welcome, you are a master user
-  </div>
-  <div style="font-size:0.88rem;color:rgba(255,255,255,0.75);">
-    Select an identity to enter as, or go straight to settings
-  </div>
-</div>
-""", unsafe_allow_html=True)
+            st.subheader("Welcome, you are a master user")
+            st.caption("Select an identity to enter as, or go straight to settings")
 
-            # RSM / ASM buttons (secondary = dark by default in dark theme)
+            # RSM / ASM buttons
             _rb1, _spacer, _rb2 = st.columns([1, 0.04, 1])
             with _rb1:
                 if st.button("RSM", key="master_rsm_btn",
@@ -787,50 +821,40 @@ def main():  # noqa: C901
                     st.session_state.onboarding_role = "ASM"
                     st.rerun()
 
-            st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
-
-            # Name selector
+            # Name selector — always visible, enabled only after role is picked
             _name_list = (
                 _ob_names.get("rsm_names", []) if _m_role == "RSM"
-                else _ob_names.get("asm_names", [])
+                else _ob_names.get("asm_names", []) if _m_role == "ASM"
+                else []
+            )
+            _m_selected = st.multiselect(
+                label=f"Select {_m_role} name" if _m_role else "Select a name",
+                options=sorted(_name_list),
+                placeholder="Select one or more names...",
+                key="master_name_select",
+                disabled=not _m_role,
             )
 
-            if not _name_list:
-                st.warning("Name list not loaded. Try Refresh Data.")
-            else:
-                st.markdown(
-                    f'<p style="font-size:0.85rem;color:rgba(255,255,255,0.8);font-weight:500;margin:0 0 0.3rem;">Select an {_m_role}s name</p>',
-                    unsafe_allow_html=True,
-                )
-                _m_selected = st.multiselect(
-                    label="Name",
-                    options=sorted(_name_list),
-                    placeholder="Select one or more names...",
-                    key="master_name_select",
-                    label_visibility="collapsed",
-                )
-                if _m_selected:
-                    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-                    if st.button("Enter Retail AI →", key="master_enter",
-                                 type="primary", use_container_width=True):
-                        st.session_state.user_names          = _m_selected
-                        st.session_state.user_name           = _m_selected[0]
-                        st.session_state.selected_role       = _m_role
-                        st.session_state.master_identity_set = True
-                        st.session_state.onboarding_role     = None
-                        st.rerun()
+            # Enter button — always visible, enabled only after names picked
+            if st.button("Enter Retail AI →", key="master_enter",
+                         type="primary", use_container_width=True,
+                         disabled=not _m_selected):
+                st.session_state.user_names          = _m_selected
+                st.session_state.user_name           = _m_selected[0]
+                st.session_state.selected_role       = _m_role
+                st.session_state.master_identity_set = True
+                st.session_state.onboarding_role     = None
+                st.session_state._transitioning      = True
+                st.rerun()
 
-            # Yellow admin button — nested column so :has() targets it specifically
-            _admin_col, _ = st.columns([1, 0.001])
-            with _admin_col:
-                st.markdown('<div class="master-admin-inner" style="display:none;"></div>', unsafe_allow_html=True)
-                if st.button("upload data / manage access?", key="master_admin",
-                             use_container_width=True):
-                    st.switch_page("pages/admin.py")
+            # Yellow admin button
+            if st.button("upload data / manage access?", key="master_admin",
+                         use_container_width=True):
+                st.switch_page("pages/admin.py")
 
             # Logo + title (bottom)
             st.markdown(f"""
-<div style="font-family:'Inter',system-ui,sans-serif;margin-top:16rem;">
+<div style="font-family:'Inter',system-ui,sans-serif;margin-top:12rem;">
   <div style="display:flex;align-items:center;gap:1.4rem;">
     {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
