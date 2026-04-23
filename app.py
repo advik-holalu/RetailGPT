@@ -75,33 +75,6 @@ st.markdown("""
 #MainMenu, footer, header { visibility: hidden; }
 html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; }
 
-/* Make every screen behave like loader (full viewport, no extra scroll) */
-[data-testid="stAppViewContainer"] {
-    height: 100vh !important;
-    overflow: hidden !important;
-}
-
-.main {
-    height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-            html, body {
-    height: 100% !important;
-    overflow: hidden !important;
-}
-
-[data-testid="stAppViewContainer"] {
-    height: 100vh !important;
-    overflow: hidden !important;
-}
-
-.main {
-    height: 100vh !important;
-    overflow: hidden !important;
-}
-
 .chat-wrapper {
     height: calc(100vh - 140px);
     display: flex;
@@ -122,11 +95,10 @@ html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; 
 /* ── Page layout ── */
 .block-container {
     padding-top: 0 !important;
-    padding-bottom: 0 !important;  /* REMOVE GAP */
+    padding-bottom: 0 !important;
     max-width: 100% !important;
     padding-left: 3.5rem !important;
     padding-right: 3.5rem !important;
-    height: 100% !important;
 }
             
 section.main > div {
@@ -425,7 +397,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.role-left-marker) > div,
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important; height: 100vh !important;
+    background: #F7941D !important; height: 100% !important;
 }
 [data-testid="stColumn"]:has(.role-left-marker) > div {
     padding: 2rem 3rem !important;
@@ -435,7 +407,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.role-right-marker) > div,
 [data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important; height: 100vh !important;
+    background: #2a2a2a !important; height: 100% !important;
     padding: 0 !important; overflow: hidden !important;
 }
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stHorizontalBlock"] {
@@ -472,7 +444,7 @@ def main():  # noqa: C901
 </div>
 """, unsafe_allow_html=True)
 
-            st.markdown('<div style="height:380px;"></div>', unsafe_allow_html=True)
+
 
             st.markdown("""
 <div style="font-family:'Inter',sans-serif;margin-bottom:1rem;">
@@ -511,7 +483,7 @@ def main():  # noqa: C901
             if _role_img_b64:
                 st.markdown(
                     f'<img src="data:image/png;base64,{_role_img_b64}" '
-                    f'style="width:100%;height:100%;min-height:520px;object-fit:cover;display:block;">',
+                    f'style="width:100%;height:100%;height:100%;object-fit:cover;display:block;">',
                     unsafe_allow_html=True,
                 )
         return
@@ -546,7 +518,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.loader-left-marker) > div,
 [data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important; height: 100vh !important;
+    background: #F7941D !important; height: 100% !important;
 }
 [data-testid="stColumn"]:has(.loader-left-marker) > div {
     padding: 2rem 3rem !important;
@@ -556,7 +528,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.loader-right-marker) > div,
 [data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important; height: 100vh !important;
+    background: #2a2a2a !important; height: 100% !important;
     padding: 0 !important; overflow: hidden !important;
 }
 </style>
@@ -578,14 +550,14 @@ def main():  # noqa: C901
   </div>
 </div>
 """, unsafe_allow_html=True)
-                    st.markdown('<div style="height:480px;"></div>', unsafe_allow_html=True)
+
                     st.markdown(status_html, unsafe_allow_html=True)
                 with _lr:
                     st.markdown('<div class="loader-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
                     if _loader_img_b64:
                         st.markdown(
                             f'<img src="data:image/png;base64,{_loader_img_b64}" '
-                            f'style="width:100%;height:100%;min-height:calc(100vh - 4rem);object-fit:cover;display:block;">',
+                            f'style="width:100%;height:100%;object-fit:cover;display:block;">',
                             unsafe_allow_html=True,
                         )
 
@@ -654,9 +626,17 @@ def main():  # noqa: C901
     background: #F7941D !important;
     height: 100%!important;
 }
-[data-testid="stColumn"]:has(.login-left-marker) > div {
+[data-testid="stColumn"]:has(.login-left-marker) > div,
+[data-testid="stColumn"]:has(.master-left-marker) > div,
+[data-testid="stColumn"]:has(.role-left-marker) > div,
+[data-testid="stColumn"]:has(.loader-left-marker) > div {
     padding: 2rem 3rem !important;
     box-sizing: border-box !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 100% !important;
 }
 /* ── Right white panel ── */
 [data-testid="stColumn"]:has(.login-right-marker),
@@ -664,7 +644,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlock"] {
     background: #2a2a2a !important;
-    height: 100vh !important;
+    height: 100% !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
@@ -708,7 +688,7 @@ def main():  # noqa: C901
 """, unsafe_allow_html=True)
 
             # Spacer — pushes fields to the bottom of the panel
-            st.markdown('<div style="height:400px;"></div>', unsafe_allow_html=True)
+
 
             # Email field
             _email_val = st.text_input(
@@ -781,13 +761,13 @@ def main():  # noqa: C901
             if _login_img_b64:
                 st.markdown(
                     f'<img src="data:image/png;base64,{_login_img_b64}" '
-                    f'style="width:100%;height:100%;min-height:520px;'
+                    f'style="width:100%;height:100%;height:100%;'
                     f'object-fit:cover;display:block;">',
                     unsafe_allow_html=True,
                 )
             else:
                 st.markdown(
-                    '<div style="background:#f5f5f5;min-height:520px;width:100%;"></div>',
+                    '<div style="background:#f5f5f5;height:100%;width:100%;"></div>',
                     unsafe_allow_html=True,
                 )
         return
@@ -817,7 +797,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlock"] {
     background: #F7941D !important;
-    height: 100vh !important;
+    height: 100% !important;
 }
 [data-testid="stColumn"]:has(.master-left-marker) > div {
     padding: 2rem 3rem !important;
@@ -828,7 +808,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlock"] {
     background: #2a2a2a !important;
-    height: 100vh !important;
+    height: 100% !important;
     padding: 0 !important;
     overflow: hidden !important;
 }
@@ -889,9 +869,6 @@ def main():  # noqa: C901
   </div>
 </div>
 """, unsafe_allow_html=True)
-
-            # Spacer — pushes content to bottom of panel
-            st.markdown('<div style="height:360px;"></div>', unsafe_allow_html=True)
 
             # Welcome heading
             st.markdown("""
@@ -966,13 +943,13 @@ def main():  # noqa: C901
             if _master_img_b64:
                 st.markdown(
                     f'<img src="data:image/png;base64,{_master_img_b64}" '
-                    f'style="width:100%;height:100%;min-height:520px;'
+                    f'style="width:100%;height:100%;height:100%;'
                     f'object-fit:cover;display:block;">',
                     unsafe_allow_html=True,
                 )
             else:
                 st.markdown(
-                    '<div style="background:#2a2a2a;min-height:520px;width:100%;"></div>',
+                    '<div style="background:#2a2a2a;height:100%;width:100%;"></div>',
                     unsafe_allow_html=True,
                 )
 
