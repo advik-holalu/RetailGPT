@@ -456,20 +456,6 @@ def main():  # noqa: C901
 
         with _rl_left:
             st.markdown('<div class="role-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
-            # Logo + title
-            st.markdown(f"""
-<div style="font-family:'Inter',system-ui,sans-serif;">
-  <div style="display:flex;align-items:center;gap:1.4rem;">
-    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
-    <div>
-      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
-      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-
 
             st.markdown("""
 <div style="font-family:'Inter',sans-serif;margin-bottom:1rem;">
@@ -502,6 +488,19 @@ def main():  # noqa: C901
                     st.session_state.user_names    = [_pr_user["name"]]
                     st.session_state.selected_role = _pr_user["role"]
                 st.rerun()
+
+            # Logo + title (bottom)
+            st.markdown(f"""
+<div style="font-family:'Inter',system-ui,sans-serif;margin-top:1.5rem;">
+  <div style="display:flex;align-items:center;gap:1.4rem;">
+    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
+    <div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
         with _rl_right:
             st.markdown('<div class="role-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
@@ -540,8 +539,12 @@ def main():  # noqa: C901
                 _ll, _lr = st.columns([55, 45])
                 with _ll:
                     st.markdown('<div class="loader-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
+
+                    st.markdown(status_html, unsafe_allow_html=True)
+
+                    # Logo + title (bottom)
                     st.markdown(f"""
-<div style="font-family:'Inter',system-ui,sans-serif;">
+<div style="font-family:'Inter',system-ui,sans-serif;margin-top:30rem;">
   <div style="display:flex;align-items:center;gap:1.4rem;">
     {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
     <div>
@@ -551,8 +554,6 @@ def main():  # noqa: C901
   </div>
 </div>
 """, unsafe_allow_html=True)
-
-                    st.markdown(status_html, unsafe_allow_html=True)
                 with _lr:
                     st.markdown('<div class="loader-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
                     if _loader_img_b64:
@@ -622,23 +623,6 @@ def main():  # noqa: C901
 
         with _lc_left:
             st.markdown('<div class="login-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
-            # Logo + title
-            st.markdown(f"""
-<div style="font-family:'Inter',system-ui,sans-serif;">
-  <div style="display:flex;align-items:center;gap:1.4rem;">
-    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
-    <div>
-      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1.05;letter-spacing:-0.03em;">Retail AI</div>
-      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.85);margin-top:0.3rem;letter-spacing:0.01em;">
-        AI Powered Sales Intelligence
-      </div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-            # Spacer — pushes fields to the bottom of the panel
-
 
             # Email field
             _email_val = st.text_input(
@@ -670,6 +654,21 @@ def main():  # noqa: C901
                     unsafe_allow_html=True,
                 )
                 st.session_state.login_error = None
+
+            # Logo + title (bottom)
+            st.markdown(f"""
+<div style="font-family:'Inter',system-ui,sans-serif;margin-top:24rem;">
+  <div style="display:flex;align-items:center;gap:1.4rem;">
+    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
+    <div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1.05;letter-spacing:-0.03em;">Retail AI</div>
+      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.85);margin-top:0.3rem;letter-spacing:0.01em;">
+        AI Powered Sales Intelligence
+      </div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
             if _signin_clicked:
                 if not _email_val.strip():
@@ -761,19 +760,6 @@ def main():  # noqa: C901
         with _mc_left:
             st.markdown('<div class="master-left-marker" style="display:none;"></div>', unsafe_allow_html=True)
 
-            # Logo + title
-            st.markdown(f"""
-<div style="font-family:'Inter',system-ui,sans-serif;">
-  <div style="display:flex;align-items:center;gap:1.4rem;">
-    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
-    <div>
-      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
-      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
             # Welcome heading
             st.markdown("""
 <div style="font-family:'Inter',sans-serif;margin-bottom:0.2rem;">
@@ -841,6 +827,19 @@ def main():  # noqa: C901
                 if st.button("upload data / manage access?", key="master_admin",
                              use_container_width=True):
                     st.switch_page("pages/admin.py")
+
+            # Logo + title (bottom)
+            st.markdown(f"""
+<div style="font-family:'Inter',system-ui,sans-serif;margin-top:16rem;">
+  <div style="display:flex;align-items:center;gap:1.4rem;">
+    {'<img src="data:image/png;base64,' + _LOGO_B64 + '" style="width:100px;height:100px;border-radius:50%;object-fit:cover;flex-shrink:0;">' if _LOGO_B64 else ''}
+    <div>
+      <div style="font-size:3.6rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-0.02em;">Retail AI</div>
+      <div style="font-size:1.05rem;font-weight:500;color:rgba(255,255,255,0.88);margin-top:0.3rem;">AI Powered Sales Intelligence</div>
+    </div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
         with _mc_right:
             st.markdown('<div class="master-right-marker" style="display:none;"></div>', unsafe_allow_html=True)
