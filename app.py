@@ -72,26 +72,18 @@ st.markdown("""
 
 /* ── Base ── */
 * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
-#MainMenu, footer, header { display: none !important; }
+
+/* Hide ALL Streamlit chrome — header tag + all known data-testid variants */
+#MainMenu, footer, header,
+[data-testid="stHeader"],
+[data-testid="stDecoration"],
+[data-testid="stToolbar"],
+[data-testid="stStatusWidget"],
+[data-testid="stAppDeployButton"],
+[data-testid="stMainMenuPopover"] { display: none !important; }
+
 html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; }
 
-.chat-wrapper {
-    height: calc(100vh - 140px);
-    display: flex;
-    flex-direction: column;
-}
-
-.chat-content {
-    flex: 1;
-    overflow-y: auto;
-    padding-bottom: 0.5rem;
-}
-
-.chat-input {
-    border-top: 1px solid #2A2A2A;
-    padding-top: 0.5rem;
-}
-                     
 /* ── Page layout ── */
 .block-container {
     padding-top: 0 !important;
@@ -101,10 +93,12 @@ html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; 
     padding-right: 3.5rem !important;
 }
 
-/* ── Onboarding screens: viewport fit, no scroll ──
-   body:has(.marker) scopes these rules precisely —
-   zero side-effects on the chat page.
-─────────────────────────────────────────────────── */
+/* ── Onboarding screens: viewport fit, zero scroll ──────────────────
+   Scoped with body:has(.marker) — chat page is completely unaffected.
+   Three layers locked: body, stAppViewContainer, section.main.
+   The split card gets an explicit 100vh so columns' height:100%
+   resolves correctly all the way up the chain.
+───────────────────────────────────────────────────────────────────── */
 body:has(.login-left-marker),
 body:has(.loader-left-marker),
 body:has(.master-left-marker),
@@ -112,8 +106,21 @@ body:has(.role-left-marker) {
     overflow: hidden !important;
     height: 100vh !important;
 }
-/* The split card must be an explicit viewport height so
-   columns' height:100% resolves correctly up the chain */
+body:has(.login-left-marker) [data-testid="stAppViewContainer"],
+body:has(.loader-left-marker) [data-testid="stAppViewContainer"],
+body:has(.master-left-marker) [data-testid="stAppViewContainer"],
+body:has(.role-left-marker) [data-testid="stAppViewContainer"],
+body:has(.login-left-marker) section.main,
+body:has(.loader-left-marker) section.main,
+body:has(.master-left-marker) section.main,
+body:has(.role-left-marker) section.main,
+body:has(.login-left-marker) .block-container,
+body:has(.loader-left-marker) .block-container,
+body:has(.master-left-marker) .block-container,
+body:has(.role-left-marker) .block-container {
+    overflow: hidden !important;
+    height: 100vh !important;
+}
 [data-testid="stHorizontalBlock"]:has(.login-left-marker),
 [data-testid="stHorizontalBlock"]:has(.loader-left-marker),
 [data-testid="stHorizontalBlock"]:has(.master-left-marker),
@@ -527,9 +534,18 @@ def main():  # noqa: C901
 
             _loader_css = """
 <style>
+/* Loader: lock all scroll layers (mirrors global onboarding rules) */
+body:has(.loader-left-marker),
+body:has(.loader-left-marker) [data-testid="stAppViewContainer"],
+body:has(.loader-left-marker) section.main,
+body:has(.loader-left-marker) .block-container {
+    overflow: hidden !important;
+    height: 100vh !important;
+}
 [data-testid="stHorizontalBlock"]:has(.loader-left-marker) {
     gap: 0 !important; border-radius: 20px !important;
     overflow: hidden !important; box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
+    height: 100vh !important; min-height: unset !important;
 }
 [data-testid="stColumn"]:has(.loader-left-marker),
 [data-testid="stColumn"]:has(.loader-left-marker) > div,
