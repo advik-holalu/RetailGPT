@@ -72,7 +72,7 @@ st.markdown("""
 
 /* ── Base ── */
 * { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu, footer, header { display: none !important; }
 html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; }
 
 .chat-wrapper {
@@ -100,9 +100,26 @@ html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; 
     padding-left: 3.5rem !important;
     padding-right: 3.5rem !important;
 }
-            
-section.main > div {
-    height: 100% !important;
+
+/* ── Onboarding screens: viewport fit, no scroll ──
+   body:has(.marker) scopes these rules precisely —
+   zero side-effects on the chat page.
+─────────────────────────────────────────────────── */
+body:has(.login-left-marker),
+body:has(.loader-left-marker),
+body:has(.master-left-marker),
+body:has(.role-left-marker) {
+    overflow: hidden !important;
+    height: 100vh !important;
+}
+/* The split card must be an explicit viewport height so
+   columns' height:100% resolves correctly up the chain */
+[data-testid="stHorizontalBlock"]:has(.login-left-marker),
+[data-testid="stHorizontalBlock"]:has(.loader-left-marker),
+[data-testid="stHorizontalBlock"]:has(.master-left-marker),
+[data-testid="stHorizontalBlock"]:has(.role-left-marker) {
+    height: 100vh !important;
+    min-height: unset !important;
 }
 
 /* ── Toolbar pills (owned HTML) ── */
