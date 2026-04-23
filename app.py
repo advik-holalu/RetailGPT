@@ -93,40 +93,72 @@ html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; 
     padding-right: 3.5rem !important;
 }
 
-/* ── Onboarding screens: viewport fit, zero scroll ──────────────────
-   Scoped with body:has(.marker) — chat page is completely unaffected.
-   Three layers locked: body, stAppViewContainer, section.main.
-   The split card gets an explicit 100vh so columns' height:100%
-   resolves correctly all the way up the chain.
+/* ── Onboarding screens: visual styling only, zero layout hacks ──────
+   No height/overflow manipulation. Let Streamlit size naturally.
+   Card is content-height → all 4 corners visible → no scroll needed.
 ───────────────────────────────────────────────────────────────────── */
-body:has(.login-left-marker),
-body:has(.loader-left-marker),
-body:has(.master-left-marker),
-body:has(.role-left-marker) {
-    overflow: hidden !important;
-    height: 100vh !important;
-}
-body:has(.login-left-marker) [data-testid="stAppViewContainer"],
-body:has(.loader-left-marker) [data-testid="stAppViewContainer"],
-body:has(.master-left-marker) [data-testid="stAppViewContainer"],
-body:has(.role-left-marker) [data-testid="stAppViewContainer"],
-body:has(.login-left-marker) section.main,
-body:has(.loader-left-marker) section.main,
-body:has(.master-left-marker) section.main,
-body:has(.role-left-marker) section.main,
-body:has(.login-left-marker) .block-container,
-body:has(.loader-left-marker) .block-container,
-body:has(.master-left-marker) .block-container,
-body:has(.role-left-marker) .block-container {
-    overflow: hidden !important;
-    height: 100vh !important;
-}
 [data-testid="stHorizontalBlock"]:has(.login-left-marker),
 [data-testid="stHorizontalBlock"]:has(.loader-left-marker),
 [data-testid="stHorizontalBlock"]:has(.master-left-marker),
 [data-testid="stHorizontalBlock"]:has(.role-left-marker) {
-    height: 100vh !important;
-    min-height: unset !important;
+    gap: 0 !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
+}
+[data-testid="stColumn"]:has(.login-left-marker),
+[data-testid="stColumn"]:has(.login-left-marker) > div,
+[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlock"],
+[data-testid="stColumn"]:has(.loader-left-marker),
+[data-testid="stColumn"]:has(.loader-left-marker) > div,
+[data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlock"],
+[data-testid="stColumn"]:has(.master-left-marker),
+[data-testid="stColumn"]:has(.master-left-marker) > div,
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlock"],
+[data-testid="stColumn"]:has(.role-left-marker),
+[data-testid="stColumn"]:has(.role-left-marker) > div,
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlock"] {
+    background: #F7941D !important;
+}
+[data-testid="stColumn"]:has(.login-left-marker) > div,
+[data-testid="stColumn"]:has(.loader-left-marker) > div,
+[data-testid="stColumn"]:has(.master-left-marker) > div,
+[data-testid="stColumn"]:has(.role-left-marker) > div {
+    padding: 2.5rem 3rem !important;
+}
+[data-testid="stColumn"]:has(.login-right-marker),
+[data-testid="stColumn"]:has(.login-right-marker) > div,
+[data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlock"],
+[data-testid="stColumn"]:has(.loader-right-marker),
+[data-testid="stColumn"]:has(.loader-right-marker) > div,
+[data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlock"],
+[data-testid="stColumn"]:has(.master-right-marker),
+[data-testid="stColumn"]:has(.master-right-marker) > div,
+[data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlock"],
+[data-testid="stColumn"]:has(.role-right-marker),
+[data-testid="stColumn"]:has(.role-right-marker) > div,
+[data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlock"] {
+    background: #2a2a2a !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+/* Nested columns inside left panels stay transparent */
+[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stColumn"],
+[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stColumn"] > div,
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"],
+[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"] > div,
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"],
+[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"] > div {
+    background: transparent !important;
+    padding: 0 !important;
 }
 
 /* ── Toolbar pills (owned HTML) ── */
@@ -413,37 +445,6 @@ def main():  # noqa: C901
 
         st.markdown("""
 <style>
-[data-testid="stHorizontalBlock"]:has(.role-left-marker) {
-    gap: 0 !important; border-radius: 20px !important;
-    overflow: hidden !important; box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
-}
-[data-testid="stColumn"]:has(.role-left-marker),
-[data-testid="stColumn"]:has(.role-left-marker) > div,
-[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important; height: 100% !important;
-}
-[data-testid="stColumn"]:has(.role-left-marker) > div {
-    padding: 2rem 3rem !important;
-    box-sizing: border-box !important;
-}
-[data-testid="stColumn"]:has(.role-right-marker),
-[data-testid="stColumn"]:has(.role-right-marker) > div,
-[data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.role-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important; height: 100% !important;
-    padding: 0 !important; overflow: hidden !important;
-}
-[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stHorizontalBlock"] {
-    gap: 0 !important; box-shadow: none !important;
-    border-radius: 0 !important; overflow: visible !important;
-}
-[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"],
-[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"] > div,
-[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.role-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlock"] {
-    background: transparent !important; min-height: unset !important; padding: 0 !important;
-}
 [data-testid="stColumn"]:has(.role-left-marker) [data-testid="stBaseButton-primary"] {
     background: #FFFFFF !important; color: #1a1a1a !important;
     border: none !important; font-weight: 700 !important;
@@ -532,40 +533,7 @@ def main():  # noqa: C901
             except Exception:
                 pass
 
-            _loader_css = """
-<style>
-/* Loader: lock all scroll layers (mirrors global onboarding rules) */
-body:has(.loader-left-marker),
-body:has(.loader-left-marker) [data-testid="stAppViewContainer"],
-body:has(.loader-left-marker) section.main,
-body:has(.loader-left-marker) .block-container {
-    overflow: hidden !important;
-    height: 100vh !important;
-}
-[data-testid="stHorizontalBlock"]:has(.loader-left-marker) {
-    gap: 0 !important; border-radius: 20px !important;
-    overflow: hidden !important; box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
-    height: 100vh !important; min-height: unset !important;
-}
-[data-testid="stColumn"]:has(.loader-left-marker),
-[data-testid="stColumn"]:has(.loader-left-marker) > div,
-[data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.loader-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important; height: 100% !important;
-}
-[data-testid="stColumn"]:has(.loader-left-marker) > div {
-    padding: 2rem 3rem !important;
-    box-sizing: border-box !important;
-}
-[data-testid="stColumn"]:has(.loader-right-marker),
-[data-testid="stColumn"]:has(.loader-right-marker) > div,
-[data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.loader-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important; height: 100% !important;
-    padding: 0 !important; overflow: hidden !important;
-}
-</style>
-"""
+            _loader_css = ""  # all visual styling handled by global CSS
 
             def _render_loader(status_html):
                 st.markdown(_loader_css, unsafe_allow_html=True)
@@ -641,62 +609,11 @@ body:has(.loader-left-marker) .block-container {
         except Exception:
             pass
 
-        # Login card CSS
+        # Login: sign-in button white (screen-specific style only)
         st.markdown("""
 <style>
-/* ── Overall card ── */
-[data-testid="stHorizontalBlock"]:has(.login-left-marker) {
-    gap: 0 !important;
-    border-radius: 20px !important;
-    overflow: hidden !important;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
-}
-/* ── Left orange panel ── */
-[data-testid="stColumn"]:has(.login-left-marker),
-[data-testid="stColumn"]:has(.login-left-marker) > div,
-[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important;
-    height: 100%!important;
-}
-[data-testid="stColumn"]:has(.login-left-marker) > div,
-[data-testid="stColumn"]:has(.master-left-marker) > div,
-[data-testid="stColumn"]:has(.role-left-marker) > div,
-[data-testid="stColumn"]:has(.loader-left-marker) > div {
-    padding: 2rem 3rem !important;
-    box-sizing: border-box !important;
-
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    height: 100% !important;
-}
-/* ── Right white panel ── */
-[data-testid="stColumn"]:has(.login-right-marker),
-[data-testid="stColumn"]:has(.login-right-marker) > div,
-[data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.login-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important;
-    height: 100% !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-/* ── Nested columns inside left panel stay transparent ── */
-[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stHorizontalBlock"] {
-    gap: 0 !important; box-shadow: none !important;
-    border-radius: 0 !important; overflow: visible !important;
-}
-[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stColumn"],
-[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stColumn"] > div,
-[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.login-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlock"] {
-    background: transparent !important;
-    min-height: unset !important;
-    padding: 0 !important;
-}
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stBaseButton-secondary"] {
-    background: #FFFFFF !important;
-    color: #2a2a2a !important;
+    background: #FFFFFF !important; color: #2a2a2a !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -818,66 +735,20 @@ body:has(.loader-left-marker) .block-container {
 
         st.markdown("""
 <style>
-/* ── Master card ── */
-[data-testid="stHorizontalBlock"]:has(.master-left-marker) {
-    gap: 0 !important;
-    border-radius: 20px !important;
-    overflow: hidden !important;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5) !important;
-}
-[data-testid="stColumn"]:has(.master-left-marker),
-[data-testid="stColumn"]:has(.master-left-marker) > div,
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stVerticalBlock"] {
-    background: #F7941D !important;
-    height: 100% !important;
-}
-[data-testid="stColumn"]:has(.master-left-marker) > div {
-    padding: 2rem 3rem !important;
-    box-sizing: border-box !important;
-}
-[data-testid="stColumn"]:has(.master-right-marker),
-[data-testid="stColumn"]:has(.master-right-marker) > div,
-[data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.master-right-marker) [data-testid="stVerticalBlock"] {
-    background: #2a2a2a !important;
-    height: 100% !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-}
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stHorizontalBlock"] {
-    gap: 0 !important; box-shadow: none !important;
-    border-radius: 0 !important; overflow: visible !important;
-}
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"],
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"] > div,
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stColumn"]:has(.master-left-marker) [data-testid="stColumn"] [data-testid="stVerticalBlock"] {
-    background: transparent !important;
-    min-height: unset !important;
-    padding: 0 !important;
-}
-/* Primary buttons inside master panel = white (selected RSM/ASM + Enter) */
+/* Master: screen-specific button styles only */
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-primary"] {
-    background: #FFFFFF !important;
-    color: #1a1a1a !important;
-    border: none !important;
-    font-weight: 700 !important;
+    background: #FFFFFF !important; color: #1a1a1a !important;
+    border: none !important; font-weight: 700 !important;
 }
 [data-testid="stColumn"]:has(.master-left-marker) [data-testid="stBaseButton-primary"]:hover {
     opacity: 0.9 !important;
 }
-/* Yellow admin button — :not(:has(.master-left-marker)) prevents bleeding to outer column */
 [data-testid="stColumn"]:has(.master-admin-inner):not(:has(.master-left-marker)) [data-testid="stBaseButton-secondary"] {
-    background: #FFE600 !important;
-    color: #1a1a1a !important;
-    border: none !important;
-    font-weight: 700 !important;
-    min-height: 48px !important;
+    background: #FFE600 !important; color: #1a1a1a !important;
+    border: none !important; font-weight: 700 !important; min-height: 48px !important;
 }
 [data-testid="stColumn"]:has(.master-admin-inner):not(:has(.master-left-marker)) [data-testid="stBaseButton-secondary"]:hover {
     background: #f0d800 !important;
-    opacity: 1 !important;
 }
 </style>
 """, unsafe_allow_html=True)
