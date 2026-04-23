@@ -75,6 +75,35 @@ st.markdown("""
 #MainMenu, footer, header { visibility: hidden; }
 html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; }
 
+/* Make every screen behave like loader (full viewport, no extra scroll) */
+[data-testid="stAppViewContainer"] {
+    height: 100vh !important;
+    overflow: hidden !important;
+}
+
+.main {
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.chat-wrapper {
+    height: calc(100vh - 140px);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 0.5rem;
+}
+
+.chat-input {
+    border-top: 1px solid #2A2A2A;
+    padding-top: 0.5rem;
+}
+                     
 /* ── Page layout ── */
 .block-container {
     padding-top: 0 !important;
@@ -1088,9 +1117,15 @@ def main():  # noqa: C901
         })
         _is_processing = True
 
-    # ── Chat card ────────────────────────────────────────────────────────
+# ── Chat card ────────────────────────────────────────────────────────
+    st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+
     st.markdown('<div id="chat-scroll-anchor"></div>', unsafe_allow_html=True)
+
     with st.container(border=True):
+
+        st.markdown('<div class="chat-content">', unsafe_allow_html=True)
+
         if not st.session_state.messages and not _is_processing:
             st.markdown(
                 '<div class="welcome-card-inner">'
@@ -1113,10 +1148,11 @@ def main():  # noqa: C901
                         html_content = _md.markdown(msg["content"], extensions=["tables", "nl2br"])
                     except Exception:
                         html_content = msg["content"].replace("\n", "<br>")
-                    # Wrap tables for rounded corners + horizontal scroll
+
                     html_content = html_content.replace(
                         "<table>", '<div class="table-wrapper"><table>'
                     ).replace("</table>", "</table></div>")
+
                     st.markdown(
                         f'<div class="msg-bot"><div class="bubble-bot">{html_content}</div></div>',
                         unsafe_allow_html=True,
@@ -1129,17 +1165,12 @@ def main():  # noqa: C901
                 '</div></div></div>',
                 unsafe_allow_html=True,
             )
-            import streamlit.components.v1 as _components
-            _components.html("""
-<script>
-(function() {
-    var el = window.parent.document.getElementById('chat-scroll-anchor');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-})();
-</script>
-""", height=0)
 
-        # ── Input form inside the same container ──
+        st.markdown('</div>', unsafe_allow_html=True)  # CLOSE chat-content
+
+        # ── Input form ──
+        st.markdown('<div class="chat-input">', unsafe_allow_html=True)
+
         with st.form(key="chat_form", clear_on_submit=True):
             _in_col, _btn_col = st.columns([10, 1])
             with _in_col:
@@ -1150,6 +1181,10 @@ def main():  # noqa: C901
                 )
             with _btn_col:
                 send_clicked = st.form_submit_button("Send", use_container_width=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)  # CLOSE chat-input
+
+    st.markdown('</div>', unsafe_allow_html=True)  # CLOSE chat-wrapper
 
     # ── Bottom strip ─────────────────────────────────────────────────────
     _strip_l, _strip_r = st.columns([3, 1], vertical_alignment="center")
