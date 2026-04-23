@@ -87,6 +87,21 @@ html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; 
     flex-direction: column !important;
 }
 
+            html, body {
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+[data-testid="stAppViewContainer"] {
+    height: 100vh !important;
+    overflow: hidden !important;
+}
+
+.main {
+    height: 100vh !important;
+    overflow: hidden !important;
+}
+
 .chat-wrapper {
     height: calc(100vh - 140px);
     display: flex;
@@ -107,15 +122,15 @@ html, body, [data-testid="stAppViewContainer"] { overflow-x: hidden !important; 
 /* ── Page layout ── */
 .block-container {
     padding-top: 0 !important;
-    padding-bottom: 2rem !important;
+    padding-bottom: 0 !important;  /* REMOVE GAP */
     max-width: 100% !important;
     padding-left: 3.5rem !important;
     padding-right: 3.5rem !important;
-    /* Prevent onboarding CSS leaking into chat */
-    position: static !important;
-    top: auto !important;
-    left: auto !important;
-    transform: none !important;
+    height: 100% !important;
+}
+            
+section.main > div {
+    height: 100% !important;
 }
 
 /* ── Toolbar pills (owned HTML) ── */
@@ -635,7 +650,7 @@ def main():  # noqa: C901
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlockBorderWrapper"],
 [data-testid="stColumn"]:has(.login-left-marker) [data-testid="stVerticalBlock"] {
     background: #F7941D !important;
-    min-height: 100vh !important;
+    height: 100%!important;
 }
 [data-testid="stColumn"]:has(.login-left-marker) > div {
     padding: 2.5rem 3rem 2rem !important;
