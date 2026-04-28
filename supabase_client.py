@@ -542,24 +542,68 @@ def parse_outlet_excel(file, fy: str) -> pd.DataFrame:
     return df
 
 
-def parse_target_excel(file) -> pd.DataFrame:
-    """Parse a TargetMMYY.xlsx file into a clean DataFrame."""
+def parse_target_excel(file, fy: str, month_int: int) -> pd.DataFrame:
+    """Parse a claude_target_FY26APR.xlsx file. fy and month_int come from the filename."""
     df = pd.read_excel(file, engine="openpyxl")
     df = df.rename(columns={c: TARGET_COLUMN_MAP.get(c, c) for c in df.columns})
-    known_cols = list(set(TARGET_COLUMN_MAP.values()))
+    # Keep only known columns (excluding month/year — we stamp from filename)
+    known_cols = [c for c in TARGET_COLUMN_MAP.values() if c not in ("month", "year")]
     existing = [c for c in known_cols if c in df.columns]
     df = df[existing].copy()
-
-    # Convert month from "Mar" format to integer
-    if "month" in df.columns:
-        month_map = {
-            'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,  'May': 5,  'Jun': 6,
-            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
-        }
-        df["month"] = df["month"].astype(str).str[:3].map(month_map).fillna(0).astype(int)
-
+    # Stamp FY and month from filename — source of truth
+    df["fy"]    = str(fy)
+    df["month"] = int(month_int)
+    # Derive year from FY string: FY26 → 2026
+    fy_digits = re.search(r"\d{2}", fy)
+    df["year"] = (2000 + int(fy_digits.group())) if fy_digits else None
     df = df.where(pd.notna(df), None)
     return df
+
+
+def get_distinct_outlet_fy() -> list[str]:
+    """Return sorted list of distinct FY values in outlet_data."""
+    try:
+        if SUPABASE_DB_URL:
+            from sqlalchemy import create_engine, text as sa_text
+            engine = create_engine(SUPABASE_DB_URL)
+            with engine.connect() as conn:
+                rows = conn.execute(sa_text("SELECT DISTINCT fy FROM outlet_data ORDER BY fy")).fetchall()
+                return [r[0] for r in rows if r[0]]
+    except Exception:
+        pass
+    try:
+        client = get_supabase()
+        res = client.table("outlet_data").select("fy").execute()
+        return sorted({r["fy"] for r in res.data if r.get("fy")})
+    except Exception:
+        return []
+
+
+def get_distinct_target_fy_months() -> list[dict]:
+    """Return list of {fy, month} dicts present in targets table."""
+    try:
+        if SUPABASE_DB_URL:
+            from sqlalchemy import create_engine, text as sa_text
+            engine = create_engine(SUPABASE_DB_URL)
+            with engine.connect() as conn:
+                rows = conn.execute(
+                    sa_text("SELECT DISTINCT fy, month FROM targets ORDER BY fy, month")
+                ).fetchall()
+                return [{"fy": r[0], "month": r[1]} for r in rows if r[0]]
+    except Exception:
+        pass
+    try:
+        client = get_supabase()
+        res = client.table("targets").select("fy,month").execute()
+        seen, out = set(), []
+        for r in res.data:
+            key = (r.get("fy"), r.get("month"))
+            if key not in seen and key[0]:
+                seen.add(key)
+                out.append({"fy": r["fy"], "month": r["month"]})
+        return sorted(out, key=lambda x: (x["fy"], x["month"]))
+    except Exception:
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -576,34 +620,46 @@ def delete_rows(table: str, filters: dict = None) -> tuple[int, str]:
     """
     import time as _time
     client = get_supabase()
+
+    # Fast path: direct SQL DELETE (no timeout risk, instant for any table size)
+    if SUPABASE_DB_URL:
+        try:
+            from sqlalchemy import create_engine, text as sa_text
+            engine = create_engine(SUPABASE_DB_URL)
+            with engine.connect() as conn:
+                if filters:
+                    conditions = " AND ".join(f"{col} = :{col}" for col in filters)
+                    # Count first
+                    count_row = conn.execute(
+                        sa_text(f"SELECT COUNT(*) FROM {table} WHERE {conditions}"), filters
+                    ).scalar()
+                    conn.execute(
+                        sa_text(f"DELETE FROM {table} WHERE {conditions}"), filters
+                    )
+                else:
+                    count_row = conn.execute(sa_text(f"SELECT COUNT(*) FROM {table}")).scalar()
+                    conn.execute(sa_text(f"DELETE FROM {table}"))
+                conn.commit()
+            return int(count_row or 0), None
+        except Exception as e:
+            return 0, str(e)
+
+    # Fallback: ID-batch delete via REST API (safe for any table size)
     try:
-        if filters:
-            # Count rows that will be deleted (for reporting)
-            q_count = client.table(table).select("id", count="exact")
-            for col, val in filters.items():
-                q_count = q_count.eq(col, val)
-            count_res = q_count.execute()
-            count_before = count_res.count or 0
-
-            # Targeted delete
-            q_del = client.table(table).delete()
-            for col, val in filters.items():
-                q_del = q_del.eq(col, val)
-            q_del.execute()
-
-            return count_before, None
-        else:
-            # ID-batch delete (safe for large tables with no filter column)
-            total_deleted = 0
-            while True:
-                res = client.table(table).select("id").limit(1000).execute()
-                ids = [r["id"] for r in (res.data or [])]
-                if not ids:
-                    break
-                client.table(table).delete().in_("id", ids).execute()
-                total_deleted += len(ids)
-                _time.sleep(0.1)
-            return total_deleted, None
+        total_deleted = 0
+        while True:
+            q = client.table(table).select("id")
+            if filters:
+                for col, val in filters.items():
+                    q = q.eq(col, val)
+            res = q.limit(1000).execute()
+            ids = [r["id"] for r in (res.data or [])]
+            if not ids:
+                break
+            client.table(table).delete().in_("id", ids).execute()
+            total_deleted += len(ids)
+            _time.sleep(0.05)
+        return total_deleted, None
     except Exception as e:
         return 0, str(e)
 
