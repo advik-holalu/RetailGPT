@@ -149,14 +149,25 @@ outlet_file = st.file_uploader(
 )
 
 if outlet_file:
-    # Auto-detect FY from filename
-    fy_match = re.search(r"FY\d{2}", outlet_file.name, re.IGNORECASE)
-    detected_fy = fy_match.group(0).upper() if fy_match else None
+    # Auto-detect FY from filename — accepts FY26, 26, 2026, Target26APR, etc.
+    def _detect_fy(name):
+        m = re.search(r"FY(\d{2})", name, re.IGNORECASE)
+        if m:
+            return f"FY{m.group(1).upper()}"
+        m = re.search(r"20(\d{2})", name)
+        if m:
+            return f"FY{m.group(1)}"
+        m = re.search(r"(\d{2})", name)
+        if m:
+            return f"FY{m.group(1)}"
+        return None
+
+    detected_fy = _detect_fy(outlet_file.name)
 
     if not detected_fy:
         st.error(
             f"Cannot detect FY from filename **{outlet_file.name}**. "
-            "Rename it to match the convention: `claude_outlet_FY26.xlsx`"
+            "Rename it to include the year, e.g. `Outlet26.xlsx` or `claude_outlet_FY26.xlsx`"
         )
     else:
         st.success(f"Detected FY: **{detected_fy}** from `{outlet_file.name}`")
@@ -275,12 +286,12 @@ target_file = st.file_uploader(
 )
 
 if target_file:
-    # Auto-detect FY and month from filename
-    t_fy_match  = re.search(r"FY\d{2}", target_file.name, re.IGNORECASE)
-    t_mon_match = re.search(r"FY\d{2}([A-Za-z]{3})", target_file.name, re.IGNORECASE)
-
-    detected_tfy   = t_fy_match.group(0).upper()  if t_fy_match  else None
-    detected_tmon  = t_mon_match.group(1).upper()  if t_mon_match else None
+    # Auto-detect FY and month — accepts FY26APR, 26APR, Target26APR, etc.
+    detected_tfy = _detect_fy(target_file.name)
+    t_mon_match = re.search(r"([A-Za-z]{3})(?=\.\w+$|$)", target_file.name)
+    if not t_mon_match:
+        t_mon_match = re.search(r"\d{2}([A-Za-z]{3})", target_file.name, re.IGNORECASE)
+    detected_tmon = t_mon_match.group(1).upper() if t_mon_match else None
     detected_tmon_int = MONTH_MAP.get(detected_tmon) if detected_tmon else None
 
     errors = []

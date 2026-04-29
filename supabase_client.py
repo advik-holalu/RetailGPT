@@ -547,7 +547,7 @@ def parse_target_excel(file, fy: str, month_int: int) -> pd.DataFrame:
     df = pd.read_excel(file, engine="openpyxl")
     df = df.rename(columns={c: TARGET_COLUMN_MAP.get(c, c) for c in df.columns})
     # Keep only known columns (excluding month/year — we stamp from filename)
-    known_cols = [c for c in TARGET_COLUMN_MAP.values() if c not in ("month", "year")]
+    known_cols = list(dict.fromkeys(c for c in TARGET_COLUMN_MAP.values() if c not in ("month", "year")))
     existing = [c for c in known_cols if c in df.columns]
     df = df[existing].copy()
     # Stamp FY and month from filename — source of truth
@@ -668,33 +668,109 @@ def upload_dataframe(
     df: pd.DataFrame,
     table: str,
     mode: str = "append",
-    batch_size: int = 100,
+    batch_size: int = 500,
     progress_callback=None,
 ) -> tuple[int, str]:
     """
-    Upload a DataFrame to a Supabase table (insert only — delete is handled separately).
-    mode parameter is accepted for backward compatibility but delete must be done beforehand.
-    progress_callback: called as callback(uploaded_so_far, total_rows) after each batch.
-    Returns (rows_uploaded, error_message_or_None).
-    Retries each batch up to 3 times on failure; skips batches that exhaust retries.
+    Upload a DataFrame to Supabase.
+    Tier 1 (fastest): PostgreSQL COPY via psycopg2 — requires SUPABASE_DB_URL.
+    Tier 2 (fast):    SQLAlchemy multi-row INSERT — requires SUPABASE_DB_URL.
+    Tier 3 (fallback): Supabase REST API batching.
+    progress_callback: called as callback(uploaded_so_far, total_rows) after each chunk.
     """
-    import time as _time
     import numpy as np
 
-    client = get_supabase()
-
-    # Final safety dedup
+    df = df.copy()
     df.columns = [re.sub(r'\.\d+$', '', str(col)).strip() for col in df.columns]
     df = df.loc[:, ~df.columns.duplicated(keep='first')]
-
     df = df.replace({np.nan: None, float('inf'): None, float('-inf'): None})
-    records = df.where(pd.notnull(df), None).to_dict(orient='records')
-    total     = len(records)
-    uploaded  = 0
-    skipped   = 0
-    n_batches = math.ceil(total / batch_size) if total else 0
+    df = df.where(pd.notnull(df), None)
 
-    for i in range(n_batches):
+    total = len(df)
+    if total == 0:
+        return 0, None
+
+    if SUPABASE_DB_URL:
+        # Tier 1: COPY (fastest — skips SQL parsing overhead entirely)
+        try:
+            return _upload_via_copy(df, table, total, progress_callback)
+        except Exception:
+            pass
+        # Tier 2: multi-row INSERT (fast — single connection, no HTTP)
+        try:
+            return _upload_via_sql(df, table, total, progress_callback)
+        except Exception:
+            pass
+
+    # Tier 3: REST API (no artificial sleep)
+    return _upload_via_rest(df, table, total, batch_size, progress_callback)
+
+
+def _upload_via_copy(df, table, total, progress_callback):
+    """PostgreSQL COPY FROM STDIN — fastest bulk insert (~10-20s for 900k rows)."""
+    import io
+    from sqlalchemy import create_engine
+
+    cols = list(df.columns)
+    col_list = ", ".join(f'"{c}"' for c in cols)
+    copy_sql = f"COPY {table} ({col_list}) FROM STDIN WITH (FORMAT CSV, NULL '')"
+    chunk_size = 50_000
+    uploaded = 0
+
+    engine = create_engine(SUPABASE_DB_URL)
+    raw_conn = engine.raw_connection()
+    try:
+        cursor = raw_conn.cursor()
+        for start in range(0, total, chunk_size):
+            chunk = df.iloc[start:start + chunk_size]
+            buf = io.StringIO()
+            chunk.to_csv(buf, index=False, header=False, na_rep='')
+            buf.seek(0)
+            cursor.copy_expert(copy_sql, buf)
+            raw_conn.commit()
+            uploaded += len(chunk)
+            if progress_callback:
+                progress_callback(uploaded, total)
+        cursor.close()
+        return uploaded, None
+    except Exception:
+        raw_conn.rollback()
+        raise
+    finally:
+        raw_conn.close()
+        engine.dispose()
+
+
+def _upload_via_sql(df, table, total, progress_callback):
+    """Multi-row INSERT via SQLAlchemy (~45s for 900k rows)."""
+    from sqlalchemy import create_engine
+
+    # 1000 rows × ~20 cols = 20k params — safely under PostgreSQL's 65535 limit
+    chunk_size = 1_000
+    uploaded = 0
+
+    engine = create_engine(SUPABASE_DB_URL)
+    try:
+        for start in range(0, total, chunk_size):
+            chunk = df.iloc[start:start + chunk_size]
+            chunk.to_sql(table, engine, if_exists='append', index=False, method='multi')
+            uploaded += len(chunk)
+            if progress_callback:
+                progress_callback(uploaded, total)
+        return uploaded, None
+    finally:
+        engine.dispose()
+
+
+def _upload_via_rest(df, table, total, batch_size, progress_callback):
+    """REST API batch insert — fallback with no artificial sleep."""
+    import time as _time
+
+    client = get_supabase()
+    records = df.to_dict(orient='records')
+    uploaded, skipped, first_err = 0, 0, None
+
+    for i in range(math.ceil(total / batch_size) if total else 0):
         batch = records[i * batch_size: (i + 1) * batch_size]
         last_err = None
         for attempt in range(3):
@@ -709,14 +785,12 @@ def upload_dataframe(
                     _time.sleep(2)
         if last_err is not None:
             skipped += len(batch)
-
+            first_err = first_err or str(last_err)
         if progress_callback:
             progress_callback(uploaded, total)
 
-        _time.sleep(0.1)
-
     if skipped:
-        return uploaded, f"Upload complete. {uploaded:,} rows uploaded, {skipped:,} rows skipped after retries."
+        return uploaded, f"Upload complete. {uploaded:,} rows uploaded, {skipped:,} rows skipped. Error: {first_err}"
     return uploaded, None
 
 

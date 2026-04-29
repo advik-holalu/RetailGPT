@@ -363,10 +363,26 @@ Columns needed: RSM Name, ASM Name, SO Name, Secondary TGT, UPC (target), Month,
             st.warning("REPLACE mode will delete ALL existing target data.")
 
         if target_file and st.button("Upload Target Data", key="upload_target_btn", use_container_width=True):
+            # Detect FY and month from filename
+            _fy_m = re.search(r"FY(\d{2})", target_file.name, re.IGNORECASE)
+            if not _fy_m:
+                _fy_m = re.search(r"(\d{2})", target_file.name)
+            _detected_fy = f"FY{_fy_m.group(1).upper()}" if _fy_m else "FY26"
+            _mon_m = re.search(r"([A-Za-z]{3})(?=\.\w+$)", target_file.name)
+            if not _mon_m:
+                _mon_m = re.search(r"\d{2}([A-Za-z]{3})", target_file.name, re.IGNORECASE)
+            _MONTH_MAP = {"JAN":1,"FEB":2,"MAR":3,"APR":4,"MAY":5,"JUN":6,
+                          "JUL":7,"AUG":8,"SEP":9,"OCT":10,"NOV":11,"DEC":12}
+            _detected_mon = _mon_m.group(1).upper() if _mon_m else None
+            _detected_mon_int = _MONTH_MAP.get(_detected_mon) if _detected_mon else None
+            if not _detected_mon_int:
+                st.error(f"Cannot detect month from filename `{target_file.name}`. Rename to e.g. `claude_target_FY26APR.xlsx`")
+                st.stop()
+            st.info(f"Detected: **{_detected_fy}** | **{_detected_mon}** ({_detected_mon_int})")
             progress_bar_t = st.progress(0, text="Parsing Excel file...")
             try:
                 with st.spinner("Parsing Excel..."):
-                    df_t = parse_target_excel(target_file)
+                    df_t = parse_target_excel(target_file, _detected_fy, _detected_mon_int)
                 st.success(f"Parsed **{len(df_t):,}** rows from {target_file.name}")
                 with st.expander("Preview first 5 rows"):
                     st.dataframe(df_t.head(5), use_container_width=True)
